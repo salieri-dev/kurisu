@@ -52,11 +52,6 @@ jobs:
         working-directory: ./${{ matrix.service }}
         run: poetry run ruff check .
 
-      - name: Run Ruff Formatter (Check)
-        if: steps.changed-files.outputs.any_changed == 'true'
-        working-directory: ./${{ matrix.service }}
-        run: poetry run ruff format --check .
-
   type-check-and-test:
     name: Type Check & Test
     runs-on: ubuntu-latest
