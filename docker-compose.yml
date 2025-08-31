@@ -19,8 +19,6 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
       - SERVICE_NAME=backend
       - REDIS_URL=redis://redis:6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - MONGODB_URL=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/${MONGO_DATABASE}?authSource=admin
 
   bot:
     build:
@@ -40,7 +38,6 @@ services:
       - SERVICE_NAME=bot
       - BACKEND_URL=http://backend:8000
       - REDIS_URL=redis://redis:6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
     depends_on:
       - backend
 
@@ -61,9 +58,7 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
       - SERVICE_NAME=worker
       - REDIS_URL=redis://redis:6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - BACKEND_URL=http://backend:8000
-      - MONGODB_URL=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/${MONGO_DATABASE}?authSource=admin
     depends_on:
       - backend
       - redis

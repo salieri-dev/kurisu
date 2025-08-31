@@ -34,13 +34,6 @@ class ChatConfigService:
             }
 
             await self.repository.upsert_config(query, update)
-
-            logger.info(
-                "Set chat config",
-                chat_id=chat_id,
-                param_name=param_name,
-                param_value=param_value,
-            )
             return ChatConfig(
                 chat_id=chat_id, param_name=param_name, param_value=param_value
             )
@@ -55,10 +48,7 @@ class ChatConfigService:
         try:
             document = await self.repository.find_one_config(chat_id, param_name)
             if document:
-                logger.info("Retrieved chat config", **document)
-
                 return ChatConfig(**document)
-            logger.info("Chat config not found", chat_id=chat_id, param_name=param_name)
             return None
         except ServiceError:
             raise
@@ -75,9 +65,6 @@ class ChatConfigService:
                 for doc in documents
                 if doc.get("param_name")
             }
-            logger.info(
-                "Retrieved all chat configs", chat_id=chat_id, count=len(configs)
-            )
             return configs
         except ServiceError:
             raise
@@ -104,3 +91,4 @@ async def get_chat_config_service(
     repository: Annotated[ChatConfigRepository, Depends(get_chat_config_repository)],
 ) -> ChatConfigService:
     return ChatConfigService(repository)
+z
