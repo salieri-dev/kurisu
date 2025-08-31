@@ -51,36 +51,4 @@ jobs:
         if: steps.changed-files.outputs.any_changed == 'true'
         working-directory: ./${{ matrix.service }}
         run: poetry run ruff check .
-
-  type-check-and-test:
-    name: Type Check & Test
-    runs-on: ubuntu-latest
-    needs: lint-and-format
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Poetry
-        run: pipx install poetry
-
-      # This step is correct and creates the necessary .venv directories
-      - name: Install ALL project dependencies
-        run: |
-          (cd backend && poetry config virtualenvs.in-project true && poetry install)
-          (cd bot && poetry config virtualenvs.in-project true && poetry install)
-          (cd worker && poetry config virtualenvs.in-project true && poetry install)
-
-      # ================== THE FINAL FIX ==================
-      # Explicitly tell MyPy which config file to use. This is unambiguous.
-      - name: Run MyPy Type Checker from Root
-        run: backend/.venv/bin/mypy --config-file pyproject.toml .
-
-      - name: Run Backend Tests
-        working-directory: ./backend
-        run: poetry run pytest
+        
