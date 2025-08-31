@@ -2,29 +2,23 @@ name: CI Quality Checks
 
 on:
   pull_request:
-    branches: [ "main" ] 
-    paths:
-      - 'backend/**'
-      - 'bot/**'
-      - 'worker/**'
-      - 'kurisu_core/**'
-      - '.github/workflows/ci-quality-checks.yml'
+    branches: [ "main" ]
   push:
     branches: [ "main" ]
 
 jobs:
-  lint-and-test:
-    name: Lint, Format, Type Check & Test
+  lint-and-format:
+    name: Lint & Format (${{ matrix.service }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [ backend, bot, worker, kurisu_core ]
+        service: [ backend, bot, worker ] # kurisu_core is checked via others
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -32,19 +26,26 @@ jobs:
       - name: Install Poetry
         run: pipx install poetry
 
-      # Only run this job if the service's directory has changed files
-      - name: Check for changes in ${{ matrix.service }}
+      - name: Cache Poetry virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ./${{ matrix.service }}/.venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles(format('{0}/poetry.lock', matrix.service)) }}
+
+      # Check for file changes to avoid unnecessary runs (optional but efficient)
+      - name: Check for relevant file changes
         id: changed-files
-        uses: tj-actions/changed-files@v46
+        uses: tj-actions/changed-files@v44
         with:
           files: |
             ${{ matrix.service }}/**
-            kurisu_core/**  # Always run if core changes
+            kurisu_core/**
 
-      - name: Install Dependencies for ${{ matrix.service }}
+      - name: Install Dependencies
         if: steps.changed-files.outputs.any_changed == 'true'
         working-directory: ./${{ matrix.service }}
-        run: poetry install --no-interaction --without dev
+        # FIX: Removed --without dev to install ruff
+        run: poetry install --no-interaction
 
       - name: Run Ruff Linter
         if: steps.changed-files.outputs.any_changed == 'true'
@@ -56,18 +57,35 @@ jobs:
         working-directory: ./${{ matrix.service }}
         run: poetry run ruff format --check .
 
-      - name: Run MyPy Type Checker
-        # Run mypy from the root because of the shared `kurisu_core` dependency
-        if: steps.changed-files.outputs.any_changed == 'true' && matrix.service == 'backend'
+  type-check-and-test:
+    name: Type Check & Test
+    runs-on: ubuntu-latest
+    needs: lint-and-format # This job runs only after linting succeeds
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install ALL dependencies for MyPy
         run: |
-          cd backend
-          poetry install # mypy needs all dependencies
-          cd ..
+          poetry -C backend install
           poetry -C bot install
           poetry -C worker install
-          poetry run mypy .
+
+      - name: Run MyPy Type Checker on the entire project
+        # MyPy needs all dependencies installed to resolve imports correctly
+        # We run it from the backend context as it has the mypy plugin for pydantic
+        working-directory: ./backend
+        run: poetry run mypy ../
 
       - name: Run Backend Tests
-        if: steps.changed-files.outputs.any_changed == 'true' && matrix.service == 'backend'
         working-directory: ./backend
         run: poetry run pytest
