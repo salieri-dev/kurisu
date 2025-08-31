@@ -11,7 +11,7 @@ pyrofork = "^2.0.207"
 tgcrypto = "^1.2.5"
 structlog = "^25.4.0"
 httpx = {extras = ["socks"], version = "^0.27.0"}
-redis = "^5.0.1"
+redis = "^6.4.0"
 pydantic = "^2.5.3"
 pydantic-settings = "^2.1.0"
 
