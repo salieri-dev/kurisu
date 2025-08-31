@@ -69,18 +69,18 @@ jobs:
       - name: Install Poetry
         run: pipx install poetry
 
+      # This step is correct and creates the necessary .venv directories
       - name: Install ALL project dependencies
         run: |
           (cd backend && poetry config virtualenvs.in-project true && poetry install)
           (cd bot && poetry config virtualenvs.in-project true && poetry install)
           (cd worker && poetry config virtualenvs.in-project true && poetry install)
 
-      # This command will now succeed because the previous step guarantees
-      # the creation of the `backend/.venv` directory.
+      # ================== THE FINAL FIX ==================
+      # Explicitly tell MyPy which config file to use. This is unambiguous.
       - name: Run MyPy Type Checker from Root
-        run: backend/.venv/bin/mypy .
+        run: backend/.venv/bin/mypy --config-file pyproject.toml .
 
       - name: Run Backend Tests
-        # This command still works as expected.
         working-directory: ./backend
         run: poetry run pytest
