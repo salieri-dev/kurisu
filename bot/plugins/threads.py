@@ -15,14 +15,18 @@ log = structlog.get_logger(__name__)
 ThreadType = Literal["bugurt", "greentext"]
 
 
-async def _handle_thread_command(client: Client, message: Message, thread_type: ThreadType):
+async def _handle_thread_command(
+    client: Client, message: Message, thread_type: ThreadType
+):
     """Generic handler for both /bugurt and /greentext commands."""
     if len(message.command) < 2:
-        await message.reply_text(f"❌ **Использование:** `/{thread_type} [тема]`", quote=True)
+        await message.reply_text(
+            f"❌ **Использование:** `/{thread_type} [тема]`", quote=True
+        )
         return
 
     topic = message.text.split(maxsplit=1)[1]
-    
+
     notification = await message.reply_text("🧠 Генерирую тред...", quote=True)
 
     response = await backend_client.post(
@@ -39,14 +43,14 @@ async def _handle_thread_command(client: Client, message: Message, thread_type: 
         # Normalize the bugurt story to handle both single-line ("A@B") and
         # multi-line ("A\n@\nB") formats from the LLM.
         # This mirrors the backend's image generation logic for consistency.
-        
+
         # 1. Flatten any existing newlines into the '@' separator.
         normalized_text = story_text.replace("\n", "@")
-        
+
         # 2. Split by the separator and filter out any empty parts
         #    (which can happen if the original had "A\n@\nB" -> "A@@B").
         parts = [p.strip() for p in normalized_text.split("@") if p.strip()]
-        
+
         # 3. Re-join with the correct multi-line separator for the caption.
         caption = "\n@\n".join(parts)
 

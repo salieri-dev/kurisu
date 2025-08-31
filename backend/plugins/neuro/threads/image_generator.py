@@ -102,16 +102,23 @@ class BaseImageGenerator(ABC):
         html_content = template.render(context)
 
         options = {
-            "format": "png", "encoding": "UTF-8", "quality": 90,
-            "width": 800, "enable-local-file-access": ""
+            "format": "png",
+            "encoding": "UTF-8",
+            "quality": 90,
+            "width": 800,
+            "enable-local-file-access": "",
         }
         try:
             image_bytes = imgkit.from_string(html_content, False, options=options)
             logger.info("Successfully generated thread image in memory.")
             return image_bytes
         except Exception as e:
-            logger.error("imgkit failed to generate image", error=str(e), html=html_content[:500])
-            raise ServiceError("Failed to render thread image. Ensure wkhtmltoimage is installed and in PATH.") from e
+            logger.error(
+                "imgkit failed to generate image", error=str(e), html=html_content[:500]
+            )
+            raise ServiceError(
+                "Failed to render thread image. Ensure wkhtmltoimage is installed and in PATH."
+            ) from e
 
 
 class DvachGenerator(BaseImageGenerator):

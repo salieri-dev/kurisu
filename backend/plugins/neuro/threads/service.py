@@ -3,6 +3,7 @@ import random
 from typing import Annotated, Literal
 
 from fastapi import Depends
+from plugins.core.config.service import ConfigService, get_config_service
 from pydantic import ValidationError
 from structlog import get_logger
 from structlog.contextvars import bind_contextvars
@@ -10,7 +11,6 @@ from utils.dependencies import get_llm_client
 from utils.exceptions import BadRequestError, LLMError, ServiceError
 from utils.llm_client import LLMClient
 
-from plugins.core.config.service import ConfigService, get_config_service
 from .image_generator import DvachGenerator, FourChanGenerator
 from .models import LLMStoryResponse, ThreadDB, ThreadResponse
 from .prompts import BUGURT_SYSTEM_PROMPT, GREENTEXT_SYSTEM_PROMPT
@@ -63,7 +63,9 @@ class ThreadsService:
             description=f"The system prompt for generating {thread_type} stories.",
         )
 
-        if not isinstance(model_name, str) or not isinstance(system_prompt_template, str):
+        if not isinstance(model_name, str) or not isinstance(
+            system_prompt_template, str
+        ):
             raise ServiceError("Invalid configuration found for threads plugin.")
 
         # --- NEW LOGIC: Generate and format IDs ---
@@ -80,7 +82,7 @@ class ThreadsService:
         # 2. Call LLM for structured story and comments
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}, # Use the new user_prompt
+            {"role": "user", "content": user_prompt},  # Use the new user_prompt
         ]
         try:
             json_string_response = await self.llm_client.chat_completion(
@@ -96,12 +98,16 @@ class ThreadsService:
                 error=str(e),
                 llm_response=json_string_response,
             )
-            raise LLMError("The language model returned a malformed response. Please try again.") from e
+            raise LLMError(
+                "The language model returned a malformed response. Please try again."
+            ) from e
         except (LLMError, BadRequestError) as e:
             raise e
         except Exception as e:
             logger.exception("An unexpected error occurred during LLM generation.")
-            raise ServiceError("An unexpected error occurred during LLM generation.") from e
+            raise ServiceError(
+                "An unexpected error occurred during LLM generation."
+            ) from e
 
         # 3. Generate image from LLM response
         Generator = GENERATORS[thread_type]
