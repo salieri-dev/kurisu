@@ -1,6 +1,6 @@
 """Repository layer for chat configuration data operations."""
 
-from typing import Any, Optional
+from typing import Any
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 from pymongo.errors import PyMongoError
@@ -18,7 +18,7 @@ class ChatConfigRepository:
 
     async def find_one_config(
         self, chat_id: int, param_name: str
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Finds a single configuration parameter for a chat."""
         try:
             return await self._collection.find_one(

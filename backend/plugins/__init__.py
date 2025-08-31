@@ -17,10 +17,10 @@ class PluginBase:
     def __init__(self, name: str, version: str = "1.0.0"):
         self.name = name
         self.version = version
-        self.router: Optional[APIRouter] = None
+        self.router: APIRouter | None = None
         self.metadata: dict[str, Any] = {}
 
-    def get_router(self) -> Optional[APIRouter]:
+    def get_router(self) -> APIRouter | None:
         """Get the plugin's router. Should be implemented by subclasses."""
         return self.router
 
@@ -36,7 +36,7 @@ class PluginDiscovery:
     """Handles automatic discovery and registration of plugins."""
 
     def __init__(
-        self, plugins_dir: str = "plugins", excluded_plugins: Optional[list[str]] = None
+        self, plugins_dir: str = "plugins", excluded_plugins: list[str] | None = None
     ):
         self.plugins_dir = (
             Path(__file__).parent if plugins_dir == "plugins" else Path(plugins_dir)
@@ -70,7 +70,7 @@ class PluginDiscovery:
 
         return self.discovered_plugins
 
-    def _load_plugin(self, plugin_path: Path, plugin_name: str) -> Optional[PluginBase]:
+    def _load_plugin(self, plugin_path: Path, plugin_name: str) -> PluginBase | None:
         """Load a single plugin from its directory."""
 
         endpoint_file = plugin_path / "endpoint.py"
@@ -118,7 +118,7 @@ class PluginDiscovery:
 plugin_discovery = PluginDiscovery()
 
 
-def init_plugins(app, excluded_plugins: Optional[list[str]] = None) -> None:
+def init_plugins(app, excluded_plugins: list[str] | None = None) -> None:
     """Initialize plugin system and register all discovered plugins."""
     global plugin_discovery
 

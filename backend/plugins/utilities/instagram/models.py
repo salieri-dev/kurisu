@@ -1,7 +1,6 @@
 """Pydantic models for the Instagram plugin."""
 
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -13,16 +12,16 @@ class InstagramMedia(BaseModel):
     source: str = "Instagram"
     attachments: list[HttpUrl]
     published_at: datetime
-    source_url: Optional[HttpUrl] = None
+    source_url: HttpUrl | None = None
     tags: list[str] = Field(default_factory=list)
-    title: Optional[str] = None
-    author_id: Optional[str] = None
-    author_name: Optional[str] = None
-    author_url: Optional[HttpUrl] = None
-    description: Optional[str] = None
-    views: Optional[int] = None
-    likes: Optional[int] = None
-    comments: Optional[int] = None
+    title: str | None = None
+    author_id: str | None = None
+    author_name: str | None = None
+    author_url: HttpUrl | None = None
+    description: str | None = None
+    views: int | None = None
+    likes: int | None = None
+    comments: int | None = None
 
 
 class InstagramMediaResponse(BaseModel):

@@ -99,7 +99,7 @@ def plot_attributes(attributes: dict[str, Any]) -> BytesIO:
         attributes["satisfaction_rating"],
     ]
     max_values = [25, 17, 100, 60, 10, 30, 100]
-    stats = [stat / max_val * 10 for stat, max_val in zip(stats, max_values)]
+    stats = [stat / max_val * 10 for stat, max_val in zip(stats, max_values, strict=False)]
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False)
     stats = np.concatenate((stats, [stats[0]]))
     angles = np.concatenate((angles, [angles[0]]))
@@ -109,7 +109,7 @@ def plot_attributes(attributes: dict[str, Any]) -> BytesIO:
     ax_radar.set_xticklabels(labels)
     ax_radar.set_ylim(0, 10)
     ax_radar.set_title("Радар атрибутов")
-    for label, angle in zip(ax_radar.get_xticklabels(), angles):
+    for label, angle in zip(ax_radar.get_xticklabels(), angles, strict=False):
         if angle in (0, np.pi):
             label.set_horizontalalignment("center")
         elif 0 < angle < np.pi:

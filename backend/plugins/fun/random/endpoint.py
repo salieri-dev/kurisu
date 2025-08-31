@@ -1,6 +1,5 @@
 """Random generation API endpoints."""
 
-from typing import Optional
 
 from fastapi import APIRouter, Query
 from plugins.fun.random import service as random_service
@@ -79,10 +78,10 @@ def magic_8ball():
     description="Generate a random integer within a specified range.",
 )
 def generate_random_number(
-    min_value: Optional[int] = Query(
+    min_value: int | None = Query(
         None, description="Minimum value (default: 1)", ge=0, example=1
     ),
-    max_value: Optional[int] = Query(
+    max_value: int | None = Query(
         None, description="Maximum value (default: 100)", ge=1, example=100
     ),
 ):

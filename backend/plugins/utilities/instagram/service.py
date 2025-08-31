@@ -2,7 +2,7 @@
 
 import re
 from datetime import UTC, datetime
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from config import AppConfig, settings
@@ -119,7 +119,7 @@ class InstagramService:
                 candidates.append(url)
         return candidates
 
-    def _get_best_resolution_url(self, item: dict[str, Any]) -> Optional[str]:
+    def _get_best_resolution_url(self, item: dict[str, Any]) -> str | None:
         """Get the best resolution URL from a single media item (photo or video)."""
         if "video_versions" in item and item["video_versions"]:
             return self._extract_max_resolution_url(item.get("video_versions", []))
@@ -131,7 +131,7 @@ class InstagramService:
 
     def _extract_max_resolution_url(
         self, candidates: list[dict[str, Any]]
-    ) -> Optional[str]:
+    ) -> str | None:
         """Find the URL with the highest resolution from a list of candidates."""
         valid_candidates = [
             c
@@ -143,7 +143,7 @@ class InstagramService:
         max_res = max(valid_candidates, key=lambda x: x["width"] * x["height"])
         return max_res["url"]
 
-    def _get_tags_from_caption(self, caption: Optional[str]) -> list[str]:
+    def _get_tags_from_caption(self, caption: str | None) -> list[str]:
         """Extract hashtags from the caption text."""
         if not caption:
             return []

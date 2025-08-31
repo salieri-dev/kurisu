@@ -1,7 +1,7 @@
 """Service layer for chat configuration operations."""
 
 from datetime import UTC, datetime
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import Depends
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorDatabase
@@ -50,7 +50,7 @@ class ChatConfigService:
             logger.error("Unexpected error in set_config service", error=str(e))
             raise ServiceError(f"Unexpected error: {e}")
 
-    async def get_config(self, chat_id: int, param_name: str) -> Optional[ChatConfig]:
+    async def get_config(self, chat_id: int, param_name: str) -> ChatConfig | None:
         """Get a configuration parameter for a specific chat."""
         try:
             document = await self.repository.find_one_config(chat_id, param_name)

@@ -1,7 +1,7 @@
 """Random generation service functions."""
 
 import random
-from typing import Any, Optional
+from typing import Any
 
 from utils.exceptions import BadRequestError
 
@@ -86,7 +86,7 @@ def magic_8ball() -> dict[str, Any]:
 
 
 def generate_random_number(
-    min_value: Optional[int] = None, max_value: Optional[int] = None
+    min_value: int | None = None, max_value: int | None = None
 ) -> dict[str, Any]:
     """
     Generate a random number in a range.

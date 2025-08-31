@@ -1,6 +1,5 @@
 """Pydantic models for GDPR operations."""
 
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -19,7 +18,7 @@ class GDPRDeleteResponse(BaseModel):
 
     success: bool
     deleted_count: int
-    error: Optional[str] = None
+    error: str | None = None
 
     class Config:
         json_schema_extra = {
