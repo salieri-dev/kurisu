@@ -1,0 +1,6 @@
+redis
+httpx
+structlog
+pydantic-settings
+motor
+pymongo

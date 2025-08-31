@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kurisu_core"
+version = "0.1.0"
+dependencies = [
+    "structlog",
+]
+# The 'packages' line has been removed from this section.
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+# 'setuptools' will automatically find packages under the 'src' directory.
+# We can be more explicit if needed, but auto-discovery is usually sufficient.
+packages = ["kurisu_core"]

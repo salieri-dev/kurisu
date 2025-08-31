@@ -1,0 +1,40 @@
+// kurisu/kurisu.code-workspace
+
+{
+  "folders": [
+    {
+      "name": "Project Root",  // <-- ADD THIS FOLDER
+      "path": "."
+    },
+    {
+      "name": "Backend",
+      "path": "backend"
+    },
+    {
+      "name": "Bot",
+      "path": "bot"
+    },
+    {
+      "name": "Worker",
+      "path": "worker"
+    },
+    {
+      "name": "Shared Core",
+      "path": "kurisu_core"
+    }
+  ],
+  "settings": {
+    // ... all your other settings remain the same ...
+    "python.defaultInterpreterPath": "${workspaceFolder:Project Root}/.venv/bin/python", // More explicit path
+
+    "[Backend]": { // No changes here
+      "python.analysis.extraPaths": ["${workspaceFolder:Backend}"]
+    },
+    "[Bot]": { // No changes here
+      "python.analysis.extraPaths": ["${workspaceFolder:Bot}"]
+    },
+    "[Worker]": { // No changes here
+      "python.analysis.extraPaths": ["${workspaceFolder:Worker}"]
+    }
+  }
+}

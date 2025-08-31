@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kurisu-backend"
+version = "0.1.0"
+description = "The backend service for the Kurisu project."
+dependencies = []
+
+[tool.setuptools.packages.find]
+# We are no longer using a `src` directory, so find packages from the root.
+where = ["."]
+exclude = ["tests*"]  # Exclude the tests directory from the package
+
+[tool.pytest.ini_options]
+# Run all async tests with the asyncio event loop
+asyncio_mode = "auto"
+# pythonpath is no longer needed as everything is at the top level
+dotenv_path = "../.env"

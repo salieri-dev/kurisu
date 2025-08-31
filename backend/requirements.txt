@@ -1,0 +1,27 @@
+fastapi
+pydantic
+pydantic-settings
+uvicorn[standard]
+matplotlib
+numpy
+pillow
+opencv-python-headless
+Wand
+python-magic
+pyfiglet
+motor
+pymongo
+redis
+celery
+structlog
+httpx[socks]
+openai
+fal-client
+imgkit
+jinja2
+pytz
+
+# Testing Dependencies
+pytest
+pytest-asyncio
+pytest-dotenv
