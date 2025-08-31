@@ -139,7 +139,7 @@ def create_report(attributes: dict[str, Any], name: str) -> str:
     default_seconds=5,
     default_limit=1,
     key="user",
-    silent=False
+    silent=False,
 )
 async def handle_dick(client: Client, message: Message):
     """Handle /dick command."""

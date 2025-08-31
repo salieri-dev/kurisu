@@ -1,12 +1,9 @@
-# docker-compose.yml (Fully Corrected)
-
 services:
   backend:
     build:
       context: . 
       dockerfile: backend/Dockerfile 
     volumes:
-      # These paths are now correct and consistent
       - ./backend:/opt/kurisu/backend
       - ./kurisu_core:/opt/kurisu/kurisu_core
       - ${ALTGIRLS_ASSETS_PATH}:/opt/kurisu/backend/plugins/fun/altgirls/assets
@@ -58,10 +55,7 @@ services:
       context: . 
       dockerfile: worker/Dockerfile 
     volumes:
-      # --- CORRECTED PATHS FOR WORKER ---
-      # Mount the local worker folder to the container's WORKDIR
       - ./worker:/opt/kurisu/worker
-      # Mount the local kurisu_core to its corresponding path
       - ./kurisu_core:/opt/kurisu/kurisu_core
     restart: no
     networks:
@@ -82,7 +76,7 @@ services:
       mongodb:
         condition: service_healthy
 
-  # --- No changes needed for mongodb or redis services ---
+
   mongodb:
     image: mongo:latest
     restart: always

@@ -1,6 +1,6 @@
 import os
-from pathlib import Path
 import random
+from pathlib import Path
 
 from utils.exceptions import NotFoundError
 

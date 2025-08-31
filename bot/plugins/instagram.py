@@ -57,7 +57,7 @@ def smart_truncate(text: str, max_length: int = 250) -> str:
     default_seconds=5,
     default_limit=2,
     key="user",
-    silent=True
+    silent=True,
 )
 async def instagram_handler(client: Client, message: Message):
     """Handles Instagram URLs by calling the backend to fetch and send media."""

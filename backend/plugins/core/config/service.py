@@ -1,21 +1,25 @@
 # backend/plugins/core/config/service.py
 import json
 from typing import Annotated, Any
+
 import redis.asyncio as redis
 from fastapi import Depends
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorDatabase
 from structlog import get_logger
 from utils.dependencies import get_database, get_redis_client
+
 from .models import ConfigGetResponse, SetConfigRequest
 from .repository import ConfigRepository
 
 logger = get_logger(__name__)
+
 
 class ConfigService:
     """
     Service layer for managing configurations with a caching layer.
     Orchestrates reads/writes between Redis cache and MongoDB persistence.
     """
+
     CACHE_PREFIX = "config:"
     CACHE_TTL_SECONDS = 300  # 5 minutes
 
@@ -49,7 +53,9 @@ class ConfigService:
         return config_item.value
 
     # --- NEW METHOD ---
-    async def get_or_create(self, key: str, default: Any, description: str | None) -> Any:
+    async def get_or_create(
+        self, key: str, default: Any, description: str | None
+    ) -> Any:
         """
         Retrieves a config value. If it doesn't exist, it creates it
         with the provided default value and description, then returns the value.
@@ -72,7 +78,9 @@ class ConfigService:
         if config_item:
             value_to_cache = json.dumps(config_item.value)
             try:
-                await self.redis.set(cache_key, value_to_cache, ex=self.CACHE_TTL_SECONDS)
+                await self.redis.set(
+                    cache_key, value_to_cache, ex=self.CACHE_TTL_SECONDS
+                )
             except Exception as e:
                 logger.error("Redis error on SET after DB find", key=key, error=str(e))
             return config_item.value
@@ -82,7 +90,7 @@ class ConfigService:
         new_config_item = await self.repository.upsert_config(
             key=key,
             value=default,
-            description=description or f"Auto-initialized config for {key}"
+            description=description or f"Auto-initialized config for {key}",
         )
 
         # Cache the newly created default value.
@@ -91,8 +99,9 @@ class ConfigService:
             await self.redis.set(cache_key, value_to_cache, ex=self.CACHE_TTL_SECONDS)
         except Exception as e:
             logger.error("Redis error on SET after create", key=key, error=str(e))
-        
+
         return new_config_item.value
+
     # --- END NEW METHOD ---
 
     async def set(self, request: SetConfigRequest) -> ConfigGetResponse:
@@ -100,7 +109,7 @@ class ConfigService:
         config_item = await self.repository.upsert_config(
             request.key, request.value, request.description
         )
-        
+
         cache_key = f"{self.CACHE_PREFIX}{request.key}"
         try:
             await self.redis.delete(cache_key)
@@ -109,11 +118,12 @@ class ConfigService:
             logger.error("Redis error on DELETE", key=request.key, error=str(e))
 
         return ConfigGetResponse.model_validate(config_item)
-        
+
     async def get_full_config_item(self, key: str) -> ConfigGetResponse | None:
         # ... existing get_full_config_item method remains unchanged ...
         item = await self.repository.get_config(key)
         return ConfigGetResponse.model_validate(item) if item else None
+
 
 # --- Dependency Injection Setup (No changes needed here) ---
 async def get_config_collection(
@@ -121,13 +131,15 @@ async def get_config_collection(
 ) -> AsyncIOMotorCollection:
     return database["configurations"]
 
+
 async def get_config_repository(
     collection: Annotated[AsyncIOMotorCollection, Depends(get_config_collection)],
 ) -> ConfigRepository:
     return ConfigRepository(collection)
 
+
 async def get_config_service(
     repository: Annotated[ConfigRepository, Depends(get_config_repository)],
-    redis_client: Annotated[redis.Redis, Depends(get_redis_client)]
+    redis_client: Annotated[redis.Redis, Depends(get_redis_client)],
 ) -> ConfigService:
     return ConfigService(repository, redis_client)

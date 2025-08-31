@@ -7,12 +7,14 @@ import structlog
 from pyrogram import Client
 from pyrogram.enums import ChatType
 from pyrogram.types import Message
-from .exceptions import APIError
+
 from .api_client import backend_client
-from .redis_utils import redis_client
 from .config_client import get_config  # Import the new function
+from .exceptions import APIError
+from .redis_utils import redis_client
 
 log = structlog.get_logger(__name__)
+
 
 # ... (handle_api_errors and bind_context decorators remain unchanged) ...
 def handle_api_errors(func):
@@ -75,7 +77,6 @@ def bind_context(func):
 
     return wrapper
 
-from .config_client import get_config
 
 def rate_limit(
     config_key_prefix: str,
@@ -87,6 +88,7 @@ def rate_limit(
     """
     A decorator factory for rate-limiting commands based on dynamic config.
     """
+
     def decorator(func):
         @functools.wraps(func)
         async def wrapper(client: Client, message: Message, *args, **kwargs):
@@ -95,13 +97,13 @@ def rate_limit(
                 f"{config_key_prefix}.seconds",
                 message,
                 default=default_seconds,
-                description=f"Rate limit window in seconds for {func.__name__}."
+                description=f"Rate limit window in seconds for {func.__name__}.",
             )
             limit = await get_config(
                 f"{config_key_prefix}.limit",
                 message,
                 default=default_limit,
-                description=f"Number of allowed requests in the window for {func.__name__}."
+                description=f"Number of allowed requests in the window for {func.__name__}.",
             )
 
             # ... rest of the rate limit logic is identical ...
@@ -138,12 +140,13 @@ def rate_limit(
                     return
             except Exception as e:
                 log.error("Redis error in rate limiter", error=str(e), exc_info=True)
-                pass # Fail open
+                pass  # Fail open
 
             return await func(client, message, *args, **kwargs)
-        return wrapper
-    return decorator
 
+        return wrapper
+
+    return decorator
 
 
 def nsfw_guard(func):

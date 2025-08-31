@@ -161,7 +161,7 @@ def format_source_link(source_link: str) -> str:
     default_seconds=3,
     default_limit=1,
     key="user",
-    silent=False
+    silent=False,
 )
 @nsfw_guard
 async def handle_altgirls(client: Client, message: Message):
