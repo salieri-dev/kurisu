@@ -1,20 +1,45 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+# backend/pyproject.toml (Corrected Version)
 
-[project]
+[tool.poetry]
 name = "kurisu-backend"
 version = "0.1.0"
 description = "The backend service for the Kurisu project."
-dependencies = []
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+package-mode = false
 
-[tool.setuptools.packages.find]
-# We are no longer using a `src` directory, so find packages from the root.
-where = ["."]
-exclude = ["tests*"]  # Exclude the tests directory from the package
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.116.1"
+pydantic = "^2.11.7"
+pydantic-settings = "^2.10.1"
+uvicorn = {extras = ["standard"], version = "^0.35.0"}
+matplotlib = "^3.10.6"
+pillow = "^11.3.0"
+opencv-python-headless = "^4.12.0"
+wand = "^0.6.13"
+python-magic = "^0.4.27"
+pyfiglet = "^1.0.4"
+motor = "^3.7.1"
+pymongo = "^4.14.1"
+redis = "^6.4.0"
+celery = "^5.5.3"
+structlog = "^25.4.0"
+httpx = {extras = ["socks"], version = "^0.28.1"}
+openai = "^1.102.0"
+fal-client = "^0.7.0"
+imgkit = "^1.2.3"
+jinja2 = "^3.1.6"
+pytz = "^2025.2"
+kurisu-core = {path = "../kurisu_core", develop = true}
 
-[tool.pytest.ini_options]
-# Run all async tests with the asyncio event loop
-asyncio_mode = "auto"
-# pythonpath is no longer needed as everything is at the top level
-dotenv_path = "../.env"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.1"
+pytest-asyncio = "^0.23.3"
+pytest-dotenv = "^0.5.2"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

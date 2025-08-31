@@ -1,7 +1,0 @@
-pyrofork
-tgcrypto
-structlog
-httpx[socks]
-redis
-pydantic
-pydantic-settings

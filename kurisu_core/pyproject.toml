@@ -1,17 +1,17 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "kurisu_core"
+[tool.poetry]
+name = "kurisu-core"
 version = "0.1.0"
-dependencies = [
-    "structlog",
-]
-# The 'packages' line has been removed from this section.
+description = "Shared core library for the Kurisu project (e.g., logging)."
+authors = ["salieri_dev <you@example.com>"]
+packages = [{include = "kurisu_core", from = "src"}]
 
-[tool.setuptools]
-package-dir = {"" = "src"}
-# 'setuptools' will automatically find packages under the 'src' directory.
-# We can be more explicit if needed, but auto-discovery is usually sufficient.
-packages = ["kurisu_core"]
+[tool.poetry.dependencies]
+python = "^3.11"
+structlog = "^25.4.0" # Use a specific version range
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+# Add development dependencies here in the future

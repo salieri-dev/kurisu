@@ -1,31 +1,33 @@
+# ---- Builder Stage ----
+FROM python:3.11-slim AS builder
+
+RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
+RUN pip install poetry
+
+WORKDIR /opt/kurisu
+
+COPY worker/pyproject.toml worker/poetry.lock ./worker/
+COPY kurisu_core ./kurisu_core/
+
+WORKDIR /opt/kurisu/worker
+
+RUN poetry config virtualenvs.in-project true && \
+    poetry install --no-interaction --no-ansi --without dev --no-root
+
+
+# ---- Final Stage ----
 FROM python:3.11-slim
 
-WORKDIR /app
+WORKDIR /opt/kurisu/worker
 
-RUN apt-get update && apt-get install -y \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /opt/kurisu/worker/.venv ./.venv
+ENV PATH="/opt/kurisu/worker/.venv/bin:$PATH"
 
-# --- START: Optimized Layering ---
-
-# 1. Copy and install third-party dependencies first.
-# This layer is only invalidated if requirements.txt changes.
-COPY worker/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# 2. Copy and install the local shared library next.
-# This layer is only invalidated if the kurisu_core source code changes.
-COPY kurisu_core ./kurisu_core
-RUN pip install --no-cache-dir ./kurisu_core
-
-# 3. Finally, copy the application code, which changes most frequently.
-# Changing a file in `worker/` will now only invalidate this layer and subsequent ones.
 COPY worker/. .
+COPY kurisu_core ../kurisu_core/
 
-# --- END: Optimized Layering ---
-
-RUN useradd --create-home --shell /bin/bash app \
-    && chown -R app:app /app
+RUN useradd --create-home --shell /bin/bash app && \
+    chown -R app:app /opt/kurisu
 USER app
 
 CMD ["python", "main.py"]

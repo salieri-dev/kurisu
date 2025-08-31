@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "kurisu-bot"
+version = "0.1.0"
+description = "Telegram bot interface for the Kurisu project."
+authors = ["Your Name <you@example.com>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pyrofork = "^2.0.207"
+tgcrypto = "^1.2.5"
+structlog = "^25.4.0"
+httpx = {extras = ["socks"], version = "^0.27.0"}
+redis = "^5.0.1"
+pydantic = "^2.5.3"
+pydantic-settings = "^2.1.0"
+
+# This adds the crucial local library dependency
+kurisu-core = {path = "../kurisu_core", develop = true}
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+# Add development dependencies here in the future
