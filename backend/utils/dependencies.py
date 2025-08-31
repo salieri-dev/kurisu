@@ -1,4 +1,7 @@
 """FastAPI dependencies for request validation and database connections."""
+
+from typing import Annotated
+
 from config import settings
 from fastapi import Depends, HTTPException, Request
 from motor.motor_asyncio import (
@@ -31,7 +34,7 @@ async def get_mongo_client(request: Request) -> AsyncIOMotorClient:
 
 
 async def get_database(
-    client: AsyncIOMotorClient = Depends(get_mongo_client)
+    client: Annotated[AsyncIOMotorClient, Depends(get_mongo_client)],
 ) -> AsyncIOMotorDatabase:
     """
     Dependency to get the application's default MongoDB database.
@@ -40,7 +43,7 @@ async def get_database(
 
 
 async def get_messages_collection(
-    database: AsyncIOMotorDatabase = Depends(get_database)
+    database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
 ) -> AsyncIOMotorCollection:
     """
     Dependency to get the 'messages' collection.
@@ -49,7 +52,8 @@ async def get_messages_collection(
 
 
 async def get_collection(
-    collection_name: str, database: AsyncIOMotorDatabase = Depends(get_database)
+    collection_name: str,
+    database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
 ) -> AsyncIOMotorCollection:
     """
     Generic dependency to get any MongoDB collection by name.

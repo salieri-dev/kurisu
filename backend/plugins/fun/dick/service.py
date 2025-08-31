@@ -62,7 +62,7 @@ def calculate_dong_attributes() -> dict[str, Any]:
 def calculate_satisfaction_rating(
     length: float, girth: float, rigidity: float, stamina: float, sensitivity: float
 ) -> float:
-    """Calculates the satisfaction rating based on attributes and returns the raw percentage."""
+    """Calculate satisfaction rating based on attributes and return raw percentage."""
     length_score = min(max((length - 13) / 5, 0), 2)
     girth_score = min(max((girth - 10) / 3, 0), 2)
     rigidity_score = rigidity / 50
@@ -99,7 +99,9 @@ def plot_attributes(attributes: dict[str, Any]) -> BytesIO:
         attributes["satisfaction_rating"],
     ]
     max_values = [25, 17, 100, 60, 10, 30, 100]
-    stats = [stat / max_val * 10 for stat, max_val in zip(stats, max_values, strict=False)]
+    stats = [
+        stat / max_val * 10 for stat, max_val in zip(stats, max_values, strict=False)
+    ]
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False)
     stats = np.concatenate((stats, [stats[0]]))
     angles = np.concatenate((angles, [angles[0]]))

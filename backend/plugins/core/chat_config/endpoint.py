@@ -1,5 +1,7 @@
 """Chat configuration API endpoints."""
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from plugins.core.chat_config import service as config_service
 from plugins.core.chat_config.models import (
@@ -18,13 +20,16 @@ logger = get_logger(__name__)
     "/set",
     response_model=ChatConfig,
     summary="Set a chat configuration parameter",
-    description="Creates or updates a specific configuration parameter for a given chat.",
+    description=(
+        "Creates or updates a specific configuration parameter for a given chat."
+    ),
 )
 async def set_chat_config(
     request: ChatConfigSetRequest,
-    service: config_service.ChatConfigService = Depends(
-        config_service.get_chat_config_service
-    ),
+    service: Annotated[
+        config_service.ChatConfigService,
+        Depends(config_service.get_chat_config_service),
+    ],
 ):
     """
     Sets a configuration value for a chat.
@@ -43,9 +48,10 @@ async def set_chat_config(
 )
 async def get_all_chat_configs(
     chat_id: int,
-    service: config_service.ChatConfigService = Depends(
-        config_service.get_chat_config_service
-    ),
+    service: Annotated[
+        config_service.ChatConfigService,
+        Depends(config_service.get_chat_config_service),
+    ],
 ):
     """
     Retrieves all configuration values for a chat.
@@ -59,14 +65,17 @@ async def get_all_chat_configs(
     "/{chat_id}/{param_name}",
     response_model=ChatConfigGetResponse,
     summary="Get a chat configuration parameter",
-    description="Retrieves the value of a specific configuration parameter for a given chat.",
+    description=(
+        "Retrieves the value of a specific configuration parameter for a given chat."
+    ),
 )
 async def get_chat_config(
     chat_id: int,
     param_name: str,
-    service: config_service.ChatConfigService = Depends(
-        config_service.get_chat_config_service
-    ),
+    service: Annotated[
+        config_service.ChatConfigService,
+        Depends(config_service.get_chat_config_service),
+    ],
 ):
     """
     Retrieves a specific configuration value for a chat. If the parameter is not set,

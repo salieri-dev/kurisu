@@ -1,6 +1,6 @@
 import base64
 import os
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import Depends
 from utils.exceptions import NotFoundError
@@ -59,6 +59,6 @@ class AltGirlsService:
 
 
 def get_altgirls_service(
-    repository: AltGirlsRepository = Depends(get_altgirls_repository)
+    repository: Annotated[AltGirlsRepository, Depends(get_altgirls_repository)],
 ) -> AltGirlsService:
     return AltGirlsService(repository)

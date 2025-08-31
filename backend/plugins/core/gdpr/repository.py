@@ -38,4 +38,4 @@ class GDPRRepository:
                 user_id=user_id,
                 error=str(e),
             )
-            raise ServiceError(f"Database error during GDPR deletion: {e}")
+            raise ServiceError(f"Database error during GDPR deletion: {e}") from e

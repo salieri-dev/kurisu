@@ -13,7 +13,7 @@ python = "^3.11"
 fastapi = "^0.116.1"
 pydantic = "^2.11.7"
 pydantic-settings = "^2.10.1"
-uvicorn = {extras = ["standard"], version = "^0.35.0"}
+uvicorn = { extras = ["standard"], version = "^0.35.0" }
 matplotlib = "^3.10.6"
 pillow = "^11.3.0"
 opencv-python-headless = "^4.12.0"
@@ -25,13 +25,13 @@ pymongo = "^4.14.1"
 redis = "^6.4.0"
 celery = "^5.5.3"
 structlog = "^25.4.0"
-httpx = {extras = ["socks"], version = "^0.28.1"}
+httpx = { extras = ["socks"], version = "^0.28.1" }
 openai = "^1.102.0"
 fal-client = "^0.7.0"
 imgkit = "^1.2.3"
 jinja2 = "^3.1.6"
 pytz = "^2025.2"
-kurisu-core = {path = "../kurisu_core", develop = true}
+kurisu-core = { path = "../kurisu_core", develop = true }
 
 
 [tool.poetry.group.dev.dependencies]
@@ -39,7 +39,7 @@ pytest = "^8.4.1"
 pytest-asyncio = "^0.23.3"
 pytest-dotenv = "^0.5.2"
 ruff = "^0.12.11"
-mypy = "^1.17.1" 
+mypy = "^1.17.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

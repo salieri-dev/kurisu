@@ -13,7 +13,9 @@ logger = get_logger(__name__)
     "/{media_code}",
     response_model=InstagramMediaResponse,
     summary="Fetch Instagram Media",
-    description="Fetches media content (photos, videos, and metadata) from an Instagram post using its shortcode.",
+    description=(
+        "Fetches media content from an Instagram post using its shortcode."
+    ),
 )
 async def get_instagram_media(media_code: str):
     """
@@ -29,18 +31,18 @@ async def get_instagram_media(media_code: str):
         logger.warning(
             "Invalid request for Instagram media", media_code=media_code, error=str(e)
         )
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except ConnectionError as e:
         logger.error(
             "Failed to connect to Instagram API", media_code=media_code, error=str(e)
         )
         raise HTTPException(
             status_code=502, detail=f"Could not fetch data from Instagram: {e}"
-        )
-    except Exception:
+        ) from e
+    except Exception as e:
         logger.exception(
             "An unexpected error occurred in Instagram endpoint", media_code=media_code
         )
         raise HTTPException(
             status_code=500, detail="An internal server error occurred."
-        )
+        ) from e

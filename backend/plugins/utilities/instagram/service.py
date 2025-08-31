@@ -62,7 +62,7 @@ class InstagramService:
             )
             raise ConnectionError(
                 f"Failed to fetch from Instagram: {e.response.status_code}"
-            )
+            ) from e
         except Exception as e:
             logger.error(
                 "Generic error fetching Instagram media",
@@ -70,7 +70,7 @@ class InstagramService:
                 error=str(e),
                 exc_info=True,
             )
-            raise ConnectionError(f"An unexpected error occurred: {str(e)}")
+            raise ConnectionError(f"An unexpected error occurred: {str(e)}") from e
 
         return self._parse_media_json(json_data)
 

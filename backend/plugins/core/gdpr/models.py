@@ -1,6 +1,5 @@
 """Pydantic models for GDPR operations."""
 
-
 from pydantic import BaseModel
 
 

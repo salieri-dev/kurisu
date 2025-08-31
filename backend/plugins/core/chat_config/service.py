@@ -1,7 +1,7 @@
 """Service layer for chat configuration operations."""
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import Depends
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorDatabase
@@ -48,7 +48,7 @@ class ChatConfigService:
             raise
         except Exception as e:
             logger.error("Unexpected error in set_config service", error=str(e))
-            raise ServiceError(f"Unexpected error: {e}")
+            raise ServiceError(f"Unexpected error: {e}") from e
 
     async def get_config(self, chat_id: int, param_name: str) -> ChatConfig | None:
         """Get a configuration parameter for a specific chat."""
@@ -64,7 +64,7 @@ class ChatConfigService:
             raise
         except Exception as e:
             logger.error("Unexpected error in get_config service", error=str(e))
-            raise ServiceError(f"Unexpected error: {e}")
+            raise ServiceError(f"Unexpected error: {e}") from e
 
     async def get_all_configs_for_chat(self, chat_id: int) -> dict[str, Any]:
         """Get all configuration parameters for a specific chat."""
@@ -85,22 +85,22 @@ class ChatConfigService:
             logger.error(
                 "Unexpected error in get_all_configs_for_chat service", error=str(e)
             )
-            raise ServiceError(f"Unexpected error: {e}")
+            raise ServiceError(f"Unexpected error: {e}") from e
 
 
 async def get_chat_configs_collection(
-    database: AsyncIOMotorDatabase = Depends(get_database)
+    database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
 ) -> AsyncIOMotorCollection:
     return database["chat_configs"]
 
 
 async def get_chat_config_repository(
-    collection: AsyncIOMotorCollection = Depends(get_chat_configs_collection),
+    collection: Annotated[AsyncIOMotorCollection, Depends(get_chat_configs_collection)],
 ) -> ChatConfigRepository:
     return ChatConfigRepository(collection)
 
 
 async def get_chat_config_service(
-    repository: ChatConfigRepository = Depends(get_chat_config_repository),
+    repository: Annotated[ChatConfigRepository, Depends(get_chat_config_repository)],
 ) -> ChatConfigService:
     return ChatConfigService(repository)

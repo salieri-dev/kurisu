@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 
 
 class DickAttributes(BaseModel):
-    """Model for generated dick attributes. Contains only raw numerical and calculated data."""
+    """Model for generated dick attributes with raw numerical and calculated data."""
 
     length_erect: float = Field(..., description="Erect length in cm.")
     girth_erect: float = Field(..., description="Erect girth in cm.")

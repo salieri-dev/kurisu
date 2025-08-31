@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query
 
 from .models import AltGirlsResponse
@@ -10,11 +12,13 @@ router = APIRouter()
     "",
     response_model=AltGirlsResponse,
     summary="Get random altgirls images",
-    description="Retrieve random altgirls images with base64 encoding and source links.",
+    description=(
+        "Retrieve random altgirls images with base64 encoding and source links."
+    ),
 )
 def get_altgirls(
+    service: Annotated[AltGirlsService, Depends(get_altgirls_service)],
     n: int = Query(1, description="Number of images to retrieve", ge=1, le=10),
-    service: AltGirlsService = Depends(get_altgirls_service),
 ):
     """
     Get random altgirls images.

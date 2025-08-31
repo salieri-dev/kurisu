@@ -1,5 +1,7 @@
 """Service layer for GDPR operations."""
 
+from typing import Annotated
+
 from fastapi import Depends
 from motor.motor_asyncio import AsyncIOMotorCollection
 from plugins.core.gdpr.models import GDPRDeleteRequest, GDPRDeleteResponse
@@ -42,16 +44,16 @@ class GDPRService:
                 error=str(e),
                 exc_info=True,
             )
-            raise ServiceError(f"An unexpected error occurred: {e}")
+            raise ServiceError(f"An unexpected error occurred: {e}") from e
 
 
 async def get_gdpr_repository(
-    collection: AsyncIOMotorCollection = Depends(get_messages_collection),
+    collection: Annotated[AsyncIOMotorCollection, Depends(get_messages_collection)],
 ) -> GDPRRepository:
     return GDPRRepository(collection)
 
 
 async def get_gdpr_service(
-    repository: GDPRRepository = Depends(get_gdpr_repository),
+    repository: Annotated[GDPRRepository, Depends(get_gdpr_repository)],
 ) -> GDPRService:
     return GDPRService(repository)

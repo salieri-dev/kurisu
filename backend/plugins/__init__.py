@@ -3,7 +3,7 @@
 import importlib
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter
 from structlog import get_logger

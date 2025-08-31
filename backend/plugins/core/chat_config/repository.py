@@ -31,7 +31,7 @@ class ChatConfigRepository:
                 param_name=param_name,
                 error=str(e),
             )
-            raise ServiceError(f"Database error while finding config: {e}")
+            raise ServiceError(f"Database error while finding config: {e}") from e
 
     async def find_all_configs_for_chat(self, chat_id: int) -> list[dict[str, Any]]:
         """Finds all configuration parameters for a given chat."""
@@ -42,7 +42,7 @@ class ChatConfigRepository:
             logger.error(
                 "DB error finding all chat configs", chat_id=chat_id, error=str(e)
             )
-            raise ServiceError(f"Database error while finding all configs: {e}")
+            raise ServiceError(f"Database error while finding all configs: {e}") from e
 
     async def upsert_config(
         self, query: dict[str, Any], update: dict[str, Any]
@@ -52,4 +52,4 @@ class ChatConfigRepository:
             await self._collection.update_one(query, update, upsert=True)
         except PyMongoError as e:
             logger.error("DB error upserting chat config", query=query, error=str(e))
-            raise ServiceError(f"Database error while setting config: {e}")
+            raise ServiceError(f"Database error while setting config: {e}") from e

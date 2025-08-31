@@ -13,7 +13,9 @@ router = APIRouter()
     "/generate",
     response_model=DickAttributes,
     summary="Generate random dick attributes",
-    description="Generate random, detailed attributes for a user's dick and return them as JSON.",
+    description=(
+        "Generate random attributes for a user's dick and return them as JSON."
+    ),
 )
 def generate_dick_attributes():
     """
@@ -29,7 +31,9 @@ def generate_dick_attributes():
     "/image",
     response_model=ImageResponse,
     summary="Generate a dick image report",
-    description="Generate a visual report of a user's dick attributes based on provided data.",
+    description=(
+        "Generate a visual report of a user's dick attributes based on provided data."
+    ),
 )
 def get_dick_image(attributes: DickAttributes):
     """

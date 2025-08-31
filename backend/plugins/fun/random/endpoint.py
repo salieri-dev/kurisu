@@ -1,6 +1,5 @@
 """Random generation API endpoints."""
 
-
 from fastapi import APIRouter, Query
 from plugins.fun.random import service as random_service
 from plugins.fun.random.models import (
@@ -18,7 +17,9 @@ router = APIRouter()
     "/choice",
     response_model=ChoiceResponse,
     summary="Make a random choice",
-    description="Choose a random option from a list of options separated by semicolons.",
+    description=(
+        "Choose a random option from a list of options separated by semicolons."
+    ),
 )
 def make_choice(
     options: str = Query(
@@ -29,7 +30,7 @@ def make_choice(
 ):
     """
     Choose a random option from a list separated by semicolons.
-    The service will raise a BadRequestError for invalid input, which is handled globally.
+    The service will raise a BadRequestError for invalid input, handled globally.
     """
     result = random_service.make_choice(options)
     return ChoiceResponse(choice=result["choice"])
@@ -39,7 +40,9 @@ def make_choice(
     "/roll",
     response_model=DiceResponse,
     summary="Roll a dice",
-    description="Roll a standard six-sided dice and get a random number between 1 and 6.",
+    description=(
+        "Roll a standard six-sided dice and get a random number between 1 and 6."
+    ),
 )
 def roll_dice():
     """Roll a dice (1-6)."""
@@ -64,7 +67,9 @@ def flip_coin():
     "/8ball",
     response_model=EightBallResponse,
     summary="Magic 8-ball prediction",
-    description="Get a random prediction from a magic 8-ball with various possible answers.",
+    description=(
+        "Get a random prediction from a magic 8-ball with various possible answers."
+    ),
 )
 def magic_8ball():
     """Get a magic 8-ball prediction."""
