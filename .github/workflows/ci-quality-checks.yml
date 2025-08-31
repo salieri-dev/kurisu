@@ -69,23 +69,18 @@ jobs:
       - name: Install Poetry
         run: pipx install poetry
 
-      # Install all dependencies for each service.
-      # The `backend` service MUST have `mypy` and `pydantic-mypy`
-      # in its [tool.poetry.group.dev.dependencies].
+      # This step creates the virtual environment and installs MyPy inside it.
       - name: Install ALL project dependencies
         run: |
           poetry -C backend install
           poetry -C bot install
           poetry -C worker install
 
-      # THE FIX: Run MyPy from the root using the `backend`'s virtual environment.
-      # This works because:
-      # 1. `backend` has MyPy installed.
-      # 2. We run the command from the root `.` directory.
-      # 3. MyPy reads the root `pyproject.toml` for its configuration.
+      # ================== THE FIX ==================
+      # We run the command FROM THE ROOT, but call the mypy
+      # executable that lives INSIDE the backend's venv.
       - name: Run MyPy Type Checker from Root
-        working-directory: ./backend
-        run: poetry run mypy ..
+        run: backend/.venv/bin/mypy .
 
       - name: Run Backend Tests
         working-directory: ./backend
