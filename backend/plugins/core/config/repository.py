@@ -24,7 +24,9 @@ class ConfigRepository:
             return ConfigItem(**doc) if doc else None
         except PyMongoError as e:
             logger.error("DB error getting config", key=key, error=str(e))
-            raise ServiceError(f"Database error while getting config for key '{key}'") from e
+            raise ServiceError(
+                f"Database error while getting config for key '{key}'"
+            ) from e
 
     async def upsert_config(
         self, key: str, value: Any, description: str | None
@@ -51,4 +53,6 @@ class ConfigRepository:
             return ConfigItem(**result)
         except PyMongoError as e:
             logger.error("DB error upserting config", key=key, error=str(e))
-            raise ServiceError(f"Database error while setting config for key '{key}'") from e
+            raise ServiceError(
+                f"Database error while setting config for key '{key}'"
+            ) from e

@@ -1,6 +1,8 @@
+# backend/config.py (Revised)
+
 from typing import Any
 
-from pydantic import Field, MongoDsn, RedisDsn
+from pydantic import Field, HttpUrl, MongoDsn, RedisDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +16,13 @@ class AppConfig(BaseSettings):
     environment: str = Field(default="development", alias="ENVIRONMENT")
     json_logs: bool = Field(default=False, alias="JSON_LOGS")
     api_key: str = Field(..., alias="API_KEY")
+
+    llm_api_key: str = Field(..., alias="LLM_API_KEY")
+    llm_base_url: HttpUrl = Field(..., alias="LLM_BASE_URL")
+    llm_http_referer: str = Field(
+        default="http://salieri.dev", alias="LLM_HTTP_REFERER"
+    )
+    llm_x_title: str = Field(default="not_salieri_bot", alias="LLM_X_TITLE")
 
     instagram_headers_json: dict[str, Any] = Field(..., alias="INSTAGRAM_HEADERS_JSON")
     instagram_cookies_json: dict[str, Any] = Field(..., alias="INSTAGRAM_COOKIES_JSON")

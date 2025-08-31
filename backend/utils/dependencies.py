@@ -12,6 +12,7 @@ from motor.motor_asyncio import (
     AsyncIOMotorDatabase,
 )
 
+from .llm_client import LLMClient
 from .redis_client import get_redis_client as redis_client_factory
 
 
@@ -72,3 +73,22 @@ async def get_collection(
     `collection_name` argument. It's a helper for other dependency providers.
     """
     return database[collection_name]
+
+
+_llm_client_instance = None
+
+
+def get_llm_client() -> LLMClient:
+    """
+    Dependency provider for the LLMClient.
+    Uses a singleton pattern to reuse the client instance.
+    """
+    global _llm_client_instance
+    if _llm_client_instance is None:
+        _llm_client_instance = LLMClient(
+            api_key=settings.llm_api_key,
+            base_url=str(settings.llm_base_url),
+            http_referer=settings.llm_http_referer,
+            x_title=settings.llm_x_title,
+        )
+    return _llm_client_instance

@@ -19,3 +19,10 @@ class BadRequestError(ServiceError):
 
     def __init__(self, detail: str = "Bad request"):
         super().__init__(detail, status_code=400)
+
+
+class LLMError(ServiceError):
+    """Raised for errors related to Large Language Model interactions."""
+
+    def __init__(self, detail: str = "LLM interaction failed", status_code: int = 502):
+        super().__init__(detail, status_code=status_code)
