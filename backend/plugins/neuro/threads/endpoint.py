@@ -8,6 +8,10 @@ from .service import ThreadsService, get_threads_service
 
 router = APIRouter()
 
+# Module-level dependencies to avoid B008 linter errors
+SERVICE_DEPENDENCY = Depends(get_threads_service)
+HEADERS_DEPENDENCY = Depends(require_telegram_headers)
+
 
 async def _generate(
     thread_type: str,
@@ -34,8 +38,8 @@ async def _generate(
 )
 async def generate_bugurt_thread(
     request: ThreadRequest,
-    service: Annotated[ThreadsService, Depends(get_threads_service)],
-    headers: dict = Depends(require_telegram_headers),
+    service: Annotated[ThreadsService, SERVICE_DEPENDENCY],
+    headers: dict = HEADERS_DEPENDENCY,
 ):
     return await _generate("bugurt", request, service, headers)
 
@@ -47,7 +51,7 @@ async def generate_bugurt_thread(
 )
 async def generate_greentext_thread(
     request: ThreadRequest,
-    service: Annotated[ThreadsService, Depends(get_threads_service)],
-    headers: dict = Depends(require_telegram_headers),
+    service: Annotated[ThreadsService, SERVICE_DEPENDENCY],
+    headers: dict = HEADERS_DEPENDENCY,
 ):
     return await _generate("greentext", request, service, headers)

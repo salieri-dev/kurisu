@@ -131,7 +131,11 @@ class ThreadsService:
         return ThreadResponse(image_base64=image_base64, story=llm_response.story)
 
 
+# Module-level dependency to avoid B008 linter error
+THREADS_SERVICE_DEPENDENCY = Depends(ThreadsService)
+
+
 def get_threads_service(
-    service: ThreadsService = Depends(ThreadsService),
+    service: ThreadsService = THREADS_SERVICE_DEPENDENCY,
 ) -> ThreadsService:
     return service
