@@ -12,6 +12,8 @@ from motor.motor_asyncio import (
     AsyncIOMotorDatabase,
 )
 
+from utils.fal_client import FalAIClient
+
 from .llm_client import LLMClient
 from .redis_client import get_redis_client as redis_client_factory
 
@@ -92,3 +94,14 @@ def get_llm_client() -> LLMClient:
             x_title=settings.llm_x_title,
         )
     return _llm_client_instance
+
+
+_fal_client_instance = None
+
+
+def get_fal_client() -> FalAIClient:
+    """Dependency provider for the FalAIClient."""
+    global _fal_client_instance
+    if _fal_client_instance is None:
+        _fal_client_instance = FalAIClient(api_key=settings.fal_api_key)
+    return _fal_client_instance
