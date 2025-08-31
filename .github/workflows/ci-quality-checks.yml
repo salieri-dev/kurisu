@@ -35,7 +35,7 @@ jobs:
       # Only run this job if the service's directory has changed files
       - name: Check for changes in ${{ matrix.service }}
         id: changed-files
-        uses: tj-actions/changed-files@v41
+        uses: tj-actions/changed-files@v46
         with:
           files: |
             ${{ matrix.service }}/**
