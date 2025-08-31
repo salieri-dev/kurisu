@@ -91,4 +91,3 @@ async def get_chat_config_service(
     repository: Annotated[ChatConfigRepository, Depends(get_chat_config_repository)],
 ) -> ChatConfigService:
     return ChatConfigService(repository)
-z

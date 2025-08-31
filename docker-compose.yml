@@ -1,8 +1,8 @@
 services:
   backend:
     build:
-      context: . # Change this to the root context
-      dockerfile: backend/Dockerfile # Specify the path to the Dockerfile
+      context: . 
+      dockerfile: backend/Dockerfile 
     volumes:
       - ./backend:/backend
       - ./kurisu_core:/backend/kurisu_core
@@ -19,11 +19,19 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
       - SERVICE_NAME=backend
       - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongodb
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   bot:
     build:
-      context: . # Change this to the root context
-      dockerfile: bot/Dockerfile # Specify the path to the Dockerfile
+      context: . 
+      dockerfile: bot/Dockerfile
     volumes:
       - ./bot:/app
       - ./kurisu_core:/app/kurisu_core
@@ -39,12 +47,13 @@ services:
       - BACKEND_URL=http://backend:8000
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   worker:
     build:
-      context: . # Change this to the root context
-      dockerfile: worker/Dockerfile # Specify the path to the Dockerfile
+      context: . 
+      dockerfile: worker/Dockerfile 
     volumes:
       - ./worker:/app
       - ./kurisu_core:/app/kurisu_core
@@ -60,11 +69,13 @@ services:
       - REDIS_URL=redis://redis:6379
       - BACKEND_URL=http://backend:8000
     depends_on:
-      - backend
-      - redis
-      - mongodb
+      backend:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
 
-  # ... rest of the file is the same ...
   mongodb:
     image: mongo:latest
     restart: always
@@ -80,6 +91,12 @@ services:
     networks:
       - app-network
     stop_grace_period: 5s
+    healthcheck:
+      test: mongosh "mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@localhost:27017/admin" --quiet --eval "db.adminCommand('ping')"
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s 
 
   redis:
     image: redis:alpine
@@ -93,6 +110,12 @@ services:
     command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
     volumes:
       - ./.data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
 networks:
   app-network:
