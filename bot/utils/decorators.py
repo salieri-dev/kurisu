@@ -1,3 +1,4 @@
+# bot/utils/decorators.py
 import functools
 import uuid
 from typing import Literal
@@ -6,15 +7,14 @@ import structlog
 from pyrogram import Client
 from pyrogram.enums import ChatType
 from pyrogram.types import Message
-
-from utils.exceptions import APIError
-
+from .exceptions import APIError
 from .api_client import backend_client
 from .redis_utils import redis_client
+from .config_client import get_config  # Import the new function
 
 log = structlog.get_logger(__name__)
 
-
+# ... (handle_api_errors and bind_context decorators remain unchanged) ...
 def handle_api_errors(func):
     """
     Decorator to catch and handle APIError exceptions from the backend client.
@@ -75,20 +75,36 @@ def bind_context(func):
 
     return wrapper
 
+from .config_client import get_config
 
 def rate_limit(
-    seconds: int,
-    limit: int = 1,
+    config_key_prefix: str,
+    default_seconds: int,
+    default_limit: int,
     key: Literal["user", "chat"] = "user",
     silent: bool = False,
 ):
     """
-    A decorator factory for rate-limiting commands.
+    A decorator factory for rate-limiting commands based on dynamic config.
     """
-
     def decorator(func):
         @functools.wraps(func)
         async def wrapper(client: Client, message: Message, *args, **kwargs):
+            # Fetch dynamic config with fallbacks and descriptions for auto-init
+            seconds = await get_config(
+                f"{config_key_prefix}.seconds",
+                message,
+                default=default_seconds,
+                description=f"Rate limit window in seconds for {func.__name__}."
+            )
+            limit = await get_config(
+                f"{config_key_prefix}.limit",
+                message,
+                default=default_limit,
+                description=f"Number of allowed requests in the window for {func.__name__}."
+            )
+
+            # ... rest of the rate limit logic is identical ...
             if key == "user":
                 if not message.from_user:
                     return
@@ -98,33 +114,36 @@ def rate_limit(
 
             redis_key = f"ratelimit:{func.__name__}:{key}:{key_id}"
 
-            request_count = await redis_client.incr(redis_key)
-            if request_count == 1:
-                await redis_client.expire(redis_key, seconds)
+            try:
+                request_count = await redis_client.incr(redis_key)
+                if request_count == 1:
+                    await redis_client.expire(redis_key, seconds)
 
-            if request_count > limit:
-                ttl = await redis_client.ttl(redis_key)
+                if request_count > limit:
+                    ttl = await redis_client.ttl(redis_key)
 
-                log.info(
-                    "Rate limit exceeded",
-                    func_name=func.__name__,
-                    rate_limit_key=key,
-                    key_id=key_id,
-                    ttl=ttl,
-                    request_count=request_count,
-                    command=message.text,
-                )
-                if not silent and ttl > 0:
-                    await message.reply_text(
-                        f"⏳ Пожалуйста, подождите {ttl} секунд перед повторным использованием этой команды."
+                    log.info(
+                        "Rate limit exceeded",
+                        func_name=func.__name__,
+                        rate_limit_key=key,
+                        key_id=key_id,
+                        ttl=ttl,
+                        request_count=request_count,
+                        command=message.text,
                     )
-                return
+                    if not silent and ttl > 0:
+                        await message.reply_text(
+                            f"⏳ Пожалуйста, подождите {ttl} секунд перед повторным использованием этой команды."
+                        )
+                    return
+            except Exception as e:
+                log.error("Redis error in rate limiter", error=str(e), exc_info=True)
+                pass # Fail open
 
             return await func(client, message, *args, **kwargs)
-
         return wrapper
-
     return decorator
+
 
 
 def nsfw_guard(func):

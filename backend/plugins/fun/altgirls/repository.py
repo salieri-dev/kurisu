@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import random
 
 from utils.exceptions import NotFoundError
@@ -29,4 +30,10 @@ class AltGirlsRepository:
 
 
 def get_altgirls_repository() -> AltGirlsRepository:
-    return AltGirlsRepository(assets_path="assets/woman")
+    """
+    Dependency provider that dynamically locates the assets directory
+    relative to this file, ensuring the plugin is self-contained.
+    """
+    plugin_dir = Path(__file__).parent
+    assets_path = plugin_dir / "assets"
+    return AltGirlsRepository(assets_path=str(assets_path))

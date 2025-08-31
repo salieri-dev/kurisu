@@ -134,7 +134,13 @@ def create_report(attributes: dict[str, Any], name: str) -> str:
 
 @Client.on_message(filters.command("dick"), group=1)
 @nsfw_guard
-@rate_limit(seconds=2, key="user", limit=1, silent=False)
+@rate_limit(
+    config_key_prefix="fun/dick.rate_limit",
+    default_seconds=5,
+    default_limit=1,
+    key="user",
+    silent=False
+)
 async def handle_dick(client: Client, message: Message):
     """Handle /dick command."""
     try:

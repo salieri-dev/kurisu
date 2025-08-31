@@ -1,7 +1,9 @@
+# backend/utils/dependencies.py
 """FastAPI dependencies for request validation and database connections."""
 
 from typing import Annotated
 
+import redis.asyncio as redis
 from config import settings
 from fastapi import Depends, HTTPException, Request
 from motor.motor_asyncio import (
@@ -9,6 +11,8 @@ from motor.motor_asyncio import (
     AsyncIOMotorCollection,
     AsyncIOMotorDatabase,
 )
+
+from .redis_client import get_redis_client as redis_client_factory
 
 
 async def require_telegram_headers(request: Request) -> dict:
@@ -49,6 +53,13 @@ async def get_messages_collection(
     Dependency to get the 'messages' collection.
     """
     return database.messages
+
+
+async def get_redis_client() -> redis.Redis:
+    """
+    Dependency to get the shared Redis client instance.
+    """
+    return redis_client_factory()
 
 
 async def get_collection(

@@ -52,7 +52,13 @@ def smart_truncate(text: str, max_length: int = 250) -> str:
 
 @Client.on_message(filters.regex(INSTAGRAM_URL_PATTERN) & ~filters.channel, group=1)
 @bind_context
-@rate_limit(seconds=5, key="user", limit=2, silent=True)
+@rate_limit(
+    config_key_prefix="utilities/instagram.rate_limit",
+    default_seconds=5,
+    default_limit=2,
+    key="user",
+    silent=True
+)
 async def instagram_handler(client: Client, message: Message):
     """Handles Instagram URLs by calling the backend to fetch and send media."""
     if not message.text:

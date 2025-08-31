@@ -1,12 +1,15 @@
+# docker-compose.yml (Fully Corrected)
+
 services:
   backend:
     build:
       context: . 
       dockerfile: backend/Dockerfile 
     volumes:
-      - ./backend:/backend
-      - ./kurisu_core:/backend/kurisu_core
-      - F:/assets:/backend/assets
+      # These paths are now correct and consistent
+      - ./backend:/opt/kurisu/backend
+      - ./kurisu_core:/opt/kurisu/kurisu_core
+      - ${ALTGIRLS_ASSETS_PATH}:/opt/kurisu/backend/plugins/fun/altgirls/assets
     ports:
       - "8000:8000"
     restart: no
@@ -24,17 +27,17 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
-      timeout: 5s
+      timeout: 2s
       retries: 5
-      start_period: 5s
+      start_period: 1s
 
   bot:
     build:
       context: . 
       dockerfile: bot/Dockerfile
     volumes:
-      - ./bot:/app
-      - ./kurisu_core:/app/kurisu_core
+      - ./bot:/opt/kurisu/bot
+      - ./kurisu_core:/opt/kurisu/kurisu_core
     restart: no
     networks:
       - app-network
@@ -55,8 +58,11 @@ services:
       context: . 
       dockerfile: worker/Dockerfile 
     volumes:
-      - ./worker:/app
-      - ./kurisu_core:/app/kurisu_core
+      # --- CORRECTED PATHS FOR WORKER ---
+      # Mount the local worker folder to the container's WORKDIR
+      - ./worker:/opt/kurisu/worker
+      # Mount the local kurisu_core to its corresponding path
+      - ./kurisu_core:/opt/kurisu/kurisu_core
     restart: no
     networks:
       - app-network
@@ -76,6 +82,7 @@ services:
       mongodb:
         condition: service_healthy
 
+  # --- No changes needed for mongodb or redis services ---
   mongodb:
     image: mongo:latest
     restart: always

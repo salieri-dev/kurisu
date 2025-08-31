@@ -156,7 +156,13 @@ def format_source_link(source_link: str) -> str:
 
 
 @Client.on_message(filters.command(["altgirls"]), group=1)
-@rate_limit(seconds=3, key="user", limit=1, silent=False)
+@rate_limit(
+    config_key_prefix="fun/altgirls.rate_limit",
+    default_seconds=3,
+    default_limit=1,
+    key="user",
+    silent=False
+)
 @nsfw_guard
 async def handle_altgirls(client: Client, message: Message):
     """Handle /altgirls command: fetch images from backend and send with funny caption."""

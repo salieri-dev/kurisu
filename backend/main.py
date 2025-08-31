@@ -69,5 +69,4 @@ init_plugins(app, excluded_plugins=EXCLUDED_PLUGINS)
 
 @app.get("/health", tags=["Health Check"])
 def read_root(request: Request):
-    logger.info("Health check endpoint hit")
     return {"status": "ok"}

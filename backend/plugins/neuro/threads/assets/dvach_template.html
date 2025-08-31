@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ru" xml:lang="ru" xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+    <title>/b/ - Бред</title>
+    <link href="https://2ch.hk/favicon.ico" id="favicon" rel="shortcut icon">
+    <meta content="initial-scale=1" name="viewport">
+    <style type="text/css">
+        @import 'https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap';
+
+        /* Base resets and typography */
+        img {
+            border: 0;
+        }
+
+        html {
+            font-family: sans-serif;
+            -ms-text-size-adjust: 100%;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        article,
+        figcaption,
+        figure,
+        footer,
+        header,
+        main {
+            display: block;
+        }
+
+        a {
+            background: 0 0;
+        }
+
+        a:active {
+            outline: 0;
+        }
+
+        a:hover {
+            outline: 0;
+        }
+
+        svg:not(:root) {
+            overflow: hidden;
+        }
+
+        figure {
+            margin: 1em 40px;
+        }
+
+        input {
+            line-height: normal;
+        }
+
+        input::-moz-focus-inner {
+            border: 0;
+            padding: 0;
+        }
+
+        input[type=checkbox] {
+            box-sizing: border-box;
+            padding: 0;
+        }
+
+        use {
+            pointer-events: none;
+        }
+
+        html {
+            overflow-y: scroll;
+            font-family: trebuchet ms, sans-serif;
+            font-size: 15px;
+        }
+
+        body {
+            margin: 0;
+            line-height: 1.3;
+            background-color: #eee;
+            background-color: var(--theme_default_bg);
+            color: #333;
+            color: var(--theme_default_text);
+        }
+
+        * {
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+        }
+
+        /* CSS Variables for theming */
+        :root {
+            --theme_default_bg: #EEE;
+            --theme_default_postbg: #DDD;
+            --theme_default_postbghighlight: #EEDACB;
+            --theme_default_spectext: #800080;
+            --theme_default_postnum: #789922;
+            --theme_default_border: #d2d2d266;
+            --theme_default_text: #333;
+            --theme_default_alttext: #5d5d5d;
+            --theme_default_link: #FF6600;
+            --theme_default_hover: #a74300;
+            --theme_default_title: #004A99;
+            --theme_default_drag: #ccc;
+            --theme_default_spoiler: #BBB;
+            --theme_default_icon: #9e9e9e;
+            --theme_default_btntext: #333;
+            --theme_default_btnbg: #EAEAEA;
+            --theme_default_btnborder: #e0e0e0;
+            --theme_default_altbtnbg: #f5f5f5;
+            --theme_default_btnbghover: #CACACA;
+            --theme_default_altbtnbghover: #fff;
+            --theme_default_inputtext: #333;
+            --theme_nmswitch: #9e9e9e;
+            --theme_mpborder: rgb(85, 85, 85);
+            --theme_mubtn: #cccccc;
+            --theme_sbthumb: #ddd;
+            --theme_sbtrack: #EEE;
+        }
+
+        /* Nightmode theme variables */
+        html[data-theme=nightmode] {
+            --theme_default_bg: rgb(21, 32, 43);
+            --theme_default_postbg: #192734;
+            --theme_default_postbghighlight: rgb(19 29 40);
+            --theme_default_spectext: #800080;
+            --theme_default_postnum: #789922;
+            --theme_default_border: #38444d66;
+            --theme_default_text: #ccc;
+            --theme_default_alttext: #7d7d7d;
+            --theme_default_link: #c3672a;
+            --theme_default_hover: #a74300;
+            --theme_default_title: #6995c5;
+            --theme_default_drag: rgb(76, 96, 116);
+            --theme_default_spoiler: #000000;
+            --theme_default_icon: #565656;
+            --theme_default_btntext: #ccc;
+            --theme_default_btnbg: #192734;
+            --theme_default_btnborder: rgb(56, 68, 77);
+            --theme_default_altbtnbg: #192734;
+            --theme_default_btnbghover: rgb(21, 32, 43);
+            --theme_default_altbtnbghover: rgb(21, 32, 43);
+            --theme_default_inputtext: #ccc;
+            --theme_nmswitch: #c3672a;
+            --theme_mpborder: rgb(13, 20, 27);
+            --theme_mubtn: #333d46;
+            --theme_sbthumb: #223546;
+            --theme_sbtrack: rgb(21, 32, 43);
+        }
+
+        /* General styles for elements */
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        hr {
+            clear: both;
+            border: none;
+            border-top: 1px solid var(--theme_default_postbg);
+            height: 0;
+        }
+
+        a {
+            color: #f60;
+            color: var(--theme_default_link);
+            margin: 0;
+            padding: 0;
+            font-size: 100%;
+            vertical-align: baseline;
+            text-decoration: none;
+            background: 0 0;
+            cursor: pointer;
+        }
+
+        a:hover {
+            color: #a74300;
+            color: var(--theme_default_hover);
+        }
+
+        a[href*="youtube.com"] {
+            border-bottom: 1px dotted;
+            line-height: 1.5em;
+        }
+
+        /* Text formatting classes (likely for content within posts) */
+        .o {
+            text-decoration: overline;
+        }
+
+        .u {
+            text-decoration: underline;
+        }
+
+        .s {
+            text-decoration: line-through;
+        }
+
+        .abbrev {
+            color: #666;
+        }
+
+        .spoiler,
+        .spoiler a {
+            color: var(--theme_default_spoiler);
+            background-color: var(--theme_default_spoiler);
+        }
+
+        .spoiler:hover {
+            color: var(--theme_default_text);
+            background-color: transparent;
+        }
+
+        .spoiler:hover a {
+            color: var(--theme_default_link);
+            background-color: transparent;
+        }
+
+        .unkfunc {
+            color: #789922;
+            color: var(--theme_default_postnum);
+        }
+
+        /* Icon styling */
+        .icon {
+            width: 14px;
+            height: 14px;
+            fill: #9e9e9e;
+            fill: var(--theme_default_icon);
+            cursor: pointer;
+            vertical-align: -2px;
+        }
+
+        .icon:hover {
+            filter: brightness(.8);
+        }
+
+        .desktop {
+            display: initial;
+        }
+
+        .post__btn {
+            outline: none;
+            margin-right: 5px;
+            -moz-user-select: all;
+        }
+
+        .post__file-preview {
+            max-width: 30%;
+            height: auto;
+        }
+
+        .turnmeoff {
+            display: none;
+            margin: 0 4px 0 0;
+        }
+
+        /* Layout styles */
+        .cntnt {
+            display: -webkit-box;
+            display: -moz-box;
+            display: -ms-flexbox;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-flex-flow: row wrap;
+            flex-flow: row wrap;
+        }
+
+        .cntnt__header {
+            flex: 1 100%;
+            -webkit-flex: 1 100%;
+            padding-bottom: 6px;
+        }
+
+        .cntnt__main {
+            flex: 1 1;
+            -webkit-flex: 1 1;
+            min-width: 0;
+            margin-left: 6px;
+        }
+
+        .tn {
+            font-size: .9em;
+            line-height: 1.5;
+            display: flex;
+            display: -webkit-flex;
+            padding: 0 0 6px;
+            align-items: center;
+        }
+
+        .tn__item {
+            margin-right: 10px;
+        }
+
+        /* Thread and Post specific styles */
+        .thread:after {
+            content: '';
+            border-top: 1px solid var(--theme_default_border);
+            width: 100%;
+            display: block;
+            margin: 8px 0;
+            clear: both;
+        }
+
+        .thread {
+            display: flex;
+            flex-flow: column wrap;
+            align-items: flex-start;
+        }
+
+        .thread__oppost {
+            margin-bottom: 6px;
+        }
+
+        .post {
+            padding: 4px;
+            margin: 0;
+            word-break: break-word;
+            word-wrap: break-word;
+        }
+
+        .post_type_oppost {
+            max-width: 60vw;
+        }
+
+        .post_type_reply:before {
+            content: '...';
+            position: absolute;
+            top: -5px;
+            left: -21px;
+            color: #8c8c8c;
+            color: var(--theme_default_icon);
+        }
+
+        .post_type_reply {
+            max-width: 50vw;
+            background: #ddd;
+            background: var(--theme_default_postbg);
+            border: 1px solid var(--theme_default_border);
+            border-radius: 3px;
+            -moz-border-radius: 3px;
+            -webkit-border-radius: 3px;
+            position: relative;
+            margin: 2px 0 4px 20px;
+            overflow: visible;
+        }
+
+        .post_type_last {
+            border-top: 2px solid #f60;
+            border-top: 2px solid var(--theme_default_link);
+        }
+
+        .post_type_replied {
+            border-left: 2px dashed #f60;
+            border-left: 2px dashed var(--theme_default_link);
+        }
+
+        .post_type_watched {
+            border-left: 2px solid #f60;
+            border-left: 2px solid var(--theme_default_link);
+        }
+
+        .post__message {
+            overflow: auto;
+            max-height: 600px;
+            padding: 16px;
+        }
+
+        .post__message_op {
+            max-height: none;
+            padding: 16px 36px;
+        }
+
+        .post__anon {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .post__detailpart {
+            padding: 0 6px 0 0 !important;
+            display: flex;
+            align-items: center;
+        }
+
+        .post__reflink {
+            color: #5d5d5d;
+            color: var(--theme_default_alttext);
+            text-decoration: none;
+        }
+
+        .post__details {
+            font-size: .9em;
+            color: #5d5d5d;
+            color: var(--theme_default_alttext);
+            display: flex;
+            flex-flow: row wrap;
+            align-items: center;
+        }
+
+        .post__images {
+            padding: 0 0 0 16px;
+            float: left;
+            display: flex;
+            flex-flow: row wrap;
+        }
+
+        .post__image {
+            margin: 0;
+        }
+
+        .post__images_type_multi {
+            float: none;
+        }
+
+        .post__image-link {
+            margin: 0 16px 0 0;
+        }
+
+        .post__file-attr {
+            color: #5d5d5d;
+            color: var(--theme_default_alttext);
+            font-size: .8em;
+            margin-top: 4px;
+        }
+
+        .post__filezise {
+            display: block;
+            font-size: .9em;
+        }
+
+        /* Footer styling */
+        .footer {
+            flex: 1 100%;
+            -webkit-flex: 1 100%;
+            padding-bottom: 6px;
+            padding: 10px 0 0;
+        }
+
+        .iconsvg {
+            display: none;
+        }
+
+        /* Media Queries */
+        @media only screen and (max-width: 1600px) {
+
+            .post_type_reply,
+            .post_type_oppost {
+                max-width: 75vw;
+            }
+        }
+
+        @media only screen and (max-width: 1300px) {
+
+            .post_type_reply,
+            .post_type_oppost {
+                max-width: 85vw;
+            }
+        }
+
+        @media only screen and (max-width: 1023px) {
+
+            .post_type_reply,
+            .post_type_oppost {
+                max-width: 100vw;
+            }
+
+            .post_withimg {
+                min-width: auto;
+            }
+        }
+
+        /* No relevant styles for (max-width: 720px) were used in template.html */
+
+        @media only screen and (max-width: 480px) {
+            .cntnt__main {
+                margin: 0 6px;
+            }
+
+            .tn {
+                justify-content: center;
+                padding: 6px 0;
+            }
+
+            body {
+                padding: 0;
+                font-size: .8em;
+            }
+
+            .desktop {
+                display: none !important;
+            }
+
+            .mobile {
+                display: initial;
+                clear: both;
+            }
+
+            .post_type_reply {
+                width: 100% !important;
+                min-width: 100% !important;
+                padding: 0;
+                margin: 4px 0 0;
+                border: none;
+            }
+
+            .post_type_reply:before {
+                content: '';
+            }
+
+            .post_type_last {
+                border-top: 2px solid #f60;
+                border-top: 2px solid var(--theme_default_link);
+            }
+
+            .post_type_replied {
+                border-left: 2px dashed #f60;
+                border-left: 2px dashed var(--theme_default_link);
+            }
+
+            .post_type_watched {
+                border-left: 2px solid #f60;
+                border-left: 2px solid var(--theme_default_link);
+            }
+
+            .post_type_oppost {
+                padding: 0;
+                margin-left: -6px;
+                margin-right: -6px;
+                width: 100%;
+            }
+
+            .post_withimg {
+                min-width: 100%;
+            }
+
+            .post__details {
+                padding: 5px;
+                overflow: hidden;
+                font-size: 1em;
+            }
+
+            /* .post .images rule not included as 'images' class not used directly in template.html */
+
+            .post__message {
+                padding: 8px;
+                font-size: 1rem;
+            }
+
+            .post__message_op {
+                overflow: initial;
+            }
+
+            .post__file-preview {
+                max-width: 110px;
+                height: auto;
+            }
+        }
+
+        /* Keyframe animations */
+        @-moz-keyframes spin {
+            100% {
+                -moz-transform: rotate(360deg);
+            }
+        }
+
+        @-webkit-keyframes spin {
+            100% {
+                -webkit-transform: rotate(360deg);
+            }
+        }
+
+        @keyframes spin {
+            100% {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body class="makaba">
+    <div class="cntnt">
+        <header class="cntnt__header header">
+            <main class="cntnt__main">
+                <div class="tn">
+                    <a id="top"></a>
+                </div>
+                <div id="js-posts">
+                    <div class="thread" id="thread-{{ post_id }}">
+                        <div class="post post_type_oppost post_withimg" data-num="{{ post_id }}" id="post-{{ post_id }}">
+                            <div class="post__details" id="post-details-{{ post_id }}">
+                                <input class="turnmeoff" name="delete" type="checkbox" value="{{ post_id }}">
+                                <span class="post__detailpart">
+                                    <span class="post__anon">{{ name }}</span>
+                                </span>
+                                <span class="post__detailpart">
+                                    <span class="post__time">{{ date }}</span>
+                                </span>
+                                <span class="post__detailpart">
+                                    <a class="post__reflink" href="#" id="{{ post_id }}">№</a>
+                                    <a class="js-post-reply-btn post__reflink" data-num="{{ post_id }}" href="#">{{
+                                        post_id }}</a>
+                                </span>
+                                <span class="post__detailpart">
+                                    <svg class="post__btn post__btn_type_favorite icon desktop" data-num="{{ post_id }}"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <use xlink:href="#icon__star"></use>
+                                    </svg>
+                                    <svg class="post__btn post__btn_type_hide icon desktop" data-num="{{ post_id }}"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <use xlink:href="#icon__hide"></use>
+                                    </svg>
+                                    <svg class="post__btn post__btn_type_menu icon desktop" data-num="{{ post_id }}"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <use xlink:href="#icon__addmenu"></use>
+                                    </svg>
+                                </span>
+                            </div>
+
+                            <div class="post__images post__images_type_multi">
+                                <figure class="post__image">
+                                    <figcaption class="post__file-attr">
+                                        <a class="desktop" href="{{ image_path }}" target="_blank"
+                                            title="{{ image_name }}">
+                                            {{ image_name }}
+                                        </a>
+                                        <svg class="icon js-post-findimg desktop" xmlns="http://www.w3.org/2000/svg">
+                                            <use xlink:href="#icon__findimg"></use>
+                                        </svg>
+                                        <svg class="icon js-post-saveimg desktop" xmlns="http://www.w3.org/2000/svg">
+                                            <use xlink:href="#icon__saveimg"></use>
+                                        </svg>
+                                        <span class="post__filezise">{{ image_size }}</span>
+                                    </figcaption>
+                                    <a class="post__image-link" href="{{ image_path }}" target="_blank">
+                                        <img alt="{{ image_size }}" class="post__file-preview" src="{{ image_path }}">
+                                    </a>
+                                </figure>
+                            </div>
+
+                            <article class="post__message post__message_op" id="m{{ post_id }}">
+                                {{ post_text }}
+                            </article>
+                        </div>
+
+                        {% for comment in comments %}
+                        <div class="post post_type_reply" data-num="{{ comment.id }}" id="post-{{ comment.id }}">
+                            <div class="post__details" id="post-details-{{ comment.id }}">
+                                <span class="post__detailpart">
+                                    <span class="post__anon">{{ comment.name }}</span>
+                                </span>
+                                <span class="post__detailpart">
+                                    <span class="post__time">{{ comment.date }}</span>
+                                </span>
+                                <span class="post__detailpart">
+                                    <a class="post__reflink" href="#" id="{{ comment.id }}">№</a>
+                                    <a class="js-post-reply-btn post__reflink" data-num="{{ comment.id }}" href="#">{{
+                                        comment.id }}</a>
+                                </span>
+                                <span class="post__detailpart">
+                                    <svg class="post__btn post__btn_type_menu icon desktop" data-num="{{ comment.id }}"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <use xlink:href="#icon__addmenu"></use>
+                                    </svg>
+                                </span>
+                            </div>
+
+                            <article class="post__message" id="m{{ comment.id }}">
+                                {{ comment.text|safe }}
+                            </article>
+                        </div>
+                        {% endfor %}
+
+                    </div>
+                </div>
+            </main>
+        </header>
+
+        <footer class="footer">
+            <div class="footer__svgs">
+                <svg aria-hidden="true" class="iconsvg" xmlns="http://www.w3.org/2000/svg"
+                    xmlns:xlink="http://www.w3.org/1999/xlink">
+                    <symbol id="icon__star" viewBox="0 0 48 48">
+                        <path
+                            d="M9.01 0C6.53 0 3.26 0 1.5 1.5C0 3.26 0 6.52 0 9C0 12 0 36 0 39C0 41.48 0 44.74 1.5 46.5C3.26 48 6.53 48 9.01 48C12.01 48 36.01 48 39.01 48C41.48 48 44.74 48 46.5 46.5C48 44.74 48 41.48 48 39C48 36 48 12 48 9C48 6.52 48 3.26 46.5 1.5C44.74 0 41.48 0 39.01 0C36.01 0 12.01 0 9.01 0Z">
+                        </path>
+                        <path
+                            d="M28.02 18.06L37 19.43L30.5 26.09L32.03 35.5L24 31.06L15.97 35.5L17.5 26.09L11 19.43L19.98 18.06L24 9.5L28.02 18.06Z"
+                            fill="#ececec"></path>
+                    </symbol>
+                    <symbol id="icon__hide" viewBox="0 0 48 48">
+                        <path
+                            d="M9.01 0C6.53 0 3.26 0 1.5 1.5C0 3.26 0 6.52 0 9C0 12 0 36 0 39C0 41.48 0 44.74 1.5 46.5C3.26 48 6.53 48 9.01 48C12.01 48 36.01 48 39.01 48C41.48 48 44.74 48 46.5 46.5C48 44.74 48 41.48 48 39C48 36 48 12 48 9C48 6.52 48 3.26 46.5 1.5C44.74 0 41.48 0 39.01 0C36.01 0 12.01 0 9.01 0Z">
+                        </path>
+                        <path
+                            d="M28.67 24L37 32.33L32.33 37L24 28.67L15.67 37L11 32.33L19.33 24L11 15.67L15.67 11L24 19.33L32.33 11L37 15.67L28.67 24Z"
+                            fill="#ececec">
+                        </path>
+                    </symbol>
+                    <symbol id="icon__addmenu" viewBox="0 0 48 48">
+                        <path
+                            d="M9.01 0C6.53 0 3.26 0 1.5 1.5C0 3.26 0 6.52 0 9C0 12 0 36 0 39C0 41.48 0 44.74 1.5 46.5C3.26 48 6.53 48 9.01 48C12.01 48 36.01 48 39.01 48C41.48 48 44.74 48 46.5 46.5C48 44.74 48 41.48 48 39C48 36 48 12 48 9C48 6.52 48 3.26 46.5 1.5C44.74 0 41.48 0 39.01 0C36.01 0 12.01 0 9.01 0Z">
+                        </path>
+                        <path d="M26.17 31.15L14.08 38.34L14.06 24L14.05 9.66L26.15 16.82L38.25 23.97L26.17 31.15Z"
+                            fill="#ececec">
+                        </path>
+                    </symbol>
+                    <!-- Dummy symbols for icons used in template.html but not defined in default.css -->
+                    <symbol id="icon__findimg" viewBox="0 0 48 48">
+                        <path fill="#ececec" d="M10 20h28v28H10z"/>
+                        <circle fill="#ececec" cx="24" cy="14" r="8"/>
+                    </symbol>
+                    <symbol id="icon__saveimg" viewBox="0 0 48 48">
+                        <path fill="#ececec" d="M10 20h28v28H10z"/>
+                        <path fill="#ececec" d="M22 28h4v12h-4z"/>
+                        <path fill="#ececec" d="M30 32l-6-6-6 6h12z"/>
+                    </symbol>
+                </svg>
+            </div>
+        </footer>
+    </div>
+</body>
+
+</html>
