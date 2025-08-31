@@ -1,0 +1,73 @@
+name: CI Quality Checks
+
+on:
+  pull_request:
+    branches: [ "main" ] 
+    paths:
+      - 'backend/**'
+      - 'bot/**'
+      - 'worker/**'
+      - 'kurisu_core/**'
+      - '.github/workflows/ci-quality-checks.yml'
+  push:
+    branches: [ "main" ]
+
+jobs:
+  lint-and-test:
+    name: Lint, Format, Type Check & Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [ backend, bot, worker, kurisu_core ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      # Only run this job if the service's directory has changed files
+      - name: Check for changes in ${{ matrix.service }}
+        id: changed-files
+        uses: tj-actions/changed-files@v41
+        with:
+          files: |
+            ${{ matrix.service }}/**
+            kurisu_core/**  # Always run if core changes
+
+      - name: Install Dependencies for ${{ matrix.service }}
+        if: steps.changed-files.outputs.any_changed == 'true'
+        working-directory: ./${{ matrix.service }}
+        run: poetry install --no-interaction --without dev
+
+      - name: Run Ruff Linter
+        if: steps.changed-files.outputs.any_changed == 'true'
+        working-directory: ./${{ matrix.service }}
+        run: poetry run ruff check .
+
+      - name: Run Ruff Formatter (Check)
+        if: steps.changed-files.outputs.any_changed == 'true'
+        working-directory: ./${{ matrix.service }}
+        run: poetry run ruff format --check .
+
+      - name: Run MyPy Type Checker
+        # Run mypy from the root because of the shared `kurisu_core` dependency
+        if: steps.changed-files.outputs.any_changed == 'true' && matrix.service == 'backend'
+        run: |
+          cd backend
+          poetry install # mypy needs all dependencies
+          cd ..
+          poetry -C bot install
+          poetry -C worker install
+          poetry run mypy .
+
+      - name: Run Backend Tests
+        if: steps.changed-files.outputs.any_changed == 'true' && matrix.service == 'backend'
+        working-directory: ./backend
+        run: poetry run pytest
