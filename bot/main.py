@@ -1,4 +1,5 @@
 """Main bot application with plugin system."""
+
 import os
 
 import structlog

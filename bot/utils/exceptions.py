@@ -1,6 +1,3 @@
-from typing import Optional
-
-
 class APIError(Exception):
     """
     Custom exception raised for errors from the backend API.
@@ -10,7 +7,7 @@ class APIError(Exception):
     """
 
     def __init__(
-        self, detail: str, status_code: int, correlation_id: Optional[str] = None
+        self, detail: str, status_code: int, correlation_id: str | None = None
     ):
         self.detail = detail
         self.status_code = status_code

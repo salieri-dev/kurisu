@@ -1,6 +1,7 @@
 """Backend API client for bot plugins."""
+
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 import structlog
@@ -15,7 +16,7 @@ log = structlog.get_logger(__name__)
 class BackendClient:
     """Generic backend API client for all bot plugins."""
 
-    def __init__(self, base_url: str, api_key: Optional[str] = None):
+    def __init__(self, base_url: str, api_key: str | None = None):
         """Initialize the backend client."""
         self._client = httpx.AsyncClient(
             base_url=base_url,
@@ -24,7 +25,7 @@ class BackendClient:
         )
 
     async def _prepare_headers(
-        self, message: Message, correlation_id: Optional[str] = None
+        self, message: Message, correlation_id: str | None = None
     ) -> dict[str, str]:
         """Prepare headers for API request from a Pyrogram message object."""
         if message.chat is None:
@@ -49,8 +50,8 @@ class BackendClient:
         path: str,
         *,
         message: Message,
-        params: Optional[dict[str, Any]] = None,
-        json: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
+        json: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Make a generic HTTP request to the backend API.
@@ -120,13 +121,13 @@ class BackendClient:
             ) from e
 
     async def get(
-        self, path: str, *, message: Message, params: Optional[dict[str, Any]] = None
+        self, path: str, *, message: Message, params: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Make a GET request to the backend API."""
         return await self.request("GET", path, message=message, params=params)
 
     async def post(
-        self, path: str, *, message: Message, json: Optional[dict[str, Any]] = None
+        self, path: str, *, message: Message, json: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Make a POST request to the backend API."""
         return await self.request("POST", path, message=message, json=json)

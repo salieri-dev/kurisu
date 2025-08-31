@@ -32,4 +32,4 @@ class MessageRepository:
         except PyMongoError as e:
             logger.error("Database error during batch message insert", error=str(e))
 
-            raise ServiceError(f"Batch insert database error: {e}")
+            raise ServiceError(f"Batch insert database error: {e}") from e

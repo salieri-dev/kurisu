@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel, Field, RedisDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -17,10 +15,10 @@ class Config(BaseSettings):
     api_hash: str = Field(..., alias="API_HASH")
     bot_token: str = Field(..., alias="BOT_TOKEN")
     backend_url: str = Field(default="http://localhost:8000", alias="BACKEND_URL")
-    api_key: Optional[str] = Field(default=None, alias="API_KEY")
+    api_key: str | None = Field(default=None, alias="API_KEY")
 
     redis_url: RedisDsn = Field(..., alias="REDIS_URL")
-    redis_password: Optional[str] = Field(default=None, alias="REDIS_PASSWORD")
+    redis_password: str | None = Field(default=None, alias="REDIS_PASSWORD")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

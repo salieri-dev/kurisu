@@ -1,4 +1,5 @@
 """Altgirls plugin for Pyrogram: requests backend API and sends album with funny captions."""
+
 import base64
 import io
 import random

@@ -3,7 +3,7 @@ import json
 import sys
 import time
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 import structlog
 from config import settings
@@ -22,9 +22,9 @@ class MessageWorker:
     """Worker that processes messages from Redis and saves them directly to MongoDB."""
 
     def __init__(self, logger: structlog.stdlib.BoundLogger):
-        self.redis_client: Optional[Redis] = None
-        self.mongo_client: Optional[AsyncIOMotorClient] = None
-        self.repository: Optional[MessageRepository] = None
+        self.redis_client: Redis | None = None
+        self.mongo_client: AsyncIOMotorClient | None = None
+        self.repository: MessageRepository | None = None
         self.logger = logger
         self.queue_name = "telegram_messages"
         self.retry_queue_name = "telegram_messages_retry"

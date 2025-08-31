@@ -1,4 +1,5 @@
 """Random plugin for bot that communicates with backend API."""
+
 import structlog
 from pyrogram import Client, filters
 from pyrogram.types import Message
