@@ -69,19 +69,18 @@ jobs:
       - name: Install Poetry
         run: pipx install poetry
 
-      # This step creates the virtual environment and installs MyPy inside it.
       - name: Install ALL project dependencies
         run: |
-          poetry -C backend install
-          poetry -C bot install
-          poetry -C worker install
+          (cd backend && poetry config virtualenvs.in-project true && poetry install)
+          (cd bot && poetry config virtualenvs.in-project true && poetry install)
+          (cd worker && poetry config virtualenvs.in-project true && poetry install)
 
-      # ================== THE FIX ==================
-      # We run the command FROM THE ROOT, but call the mypy
-      # executable that lives INSIDE the backend's venv.
+      # This command will now succeed because the previous step guarantees
+      # the creation of the `backend/.venv` directory.
       - name: Run MyPy Type Checker from Root
         run: backend/.venv/bin/mypy .
 
       - name: Run Backend Tests
+        # This command still works as expected.
         working-directory: ./backend
         run: poetry run pytest
