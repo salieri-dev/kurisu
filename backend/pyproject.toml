@@ -38,7 +38,8 @@ kurisu-core = {path = "../kurisu_core", develop = true}
 pytest = "^8.4.1"
 pytest-asyncio = "^0.23.3"
 pytest-dotenv = "^0.5.2"
-
+ruff = "^0.12.11"
+mypy = "^1.17.1" 
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
