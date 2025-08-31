@@ -14,7 +14,7 @@ logger = get_logger(__name__)
     response_model=InstagramMediaResponse,
     summary="Fetch Instagram Media",
     description=(
-        "Fetches media content from an Instagram post using its shortcode."
+        "Fetches media from an Instagram post using its shortcode."
     ),
 )
 async def get_instagram_media(media_code: str):

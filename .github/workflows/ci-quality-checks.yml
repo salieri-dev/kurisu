@@ -55,7 +55,7 @@ jobs:
   type-check-and-test:
     name: Type Check & Test
     runs-on: ubuntu-latest
-    needs: lint-and-format # This job runs only after linting succeeds
+    needs: lint-and-format
 
     steps:
       - name: Checkout repository
@@ -69,17 +69,23 @@ jobs:
       - name: Install Poetry
         run: pipx install poetry
 
-      - name: Install ALL dependencies for MyPy
+      - name: Install ALL project dependencies
         run: |
           poetry -C backend install
           poetry -C bot install
           poetry -C worker install
 
-      - name: Run MyPy Type Checker on the entire project
-        # MyPy needs all dependencies installed to resolve imports correctly
-        # We run it from the backend context as it has the mypy plugin for pydantic
-        working-directory: ./backend
-        run: poetry run mypy ../
+      - name: Install Root Dev Dependencies
+        # Create a dummy pyproject.toml if one doesn't exist to satisfy poetry
+        run: |
+          if [ ! -f pyproject.toml ]; then
+            poetry init --no-interaction -n kurisu-monorepo -d "Monorepo root"
+          fi
+          poetry add "mypy>=1.10" "pydantic-mypy" --group dev
+
+      - name: Run MyPy Type Checker from Root
+        # This now uses the root pyproject.toml for configuration
+        run: poetry run mypy .
 
       - name: Run Backend Tests
         working-directory: ./backend
