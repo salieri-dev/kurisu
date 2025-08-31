@@ -21,8 +21,8 @@ GENERAL_ERROR = "❌ Произошла ошибка при выполнении
 async def call_backend_gdpr_api(message: Message):
     """Call the backend API for GDPR data deletion"""
     try:
-        # The backend client handles the correlation ID automatically.
-        # We no longer need to generate or pass it here.
+
+
         result = await backend_client.request(
             method="DELETE",
             path=f"/core/gdpr/users/{message.from_user.id}",
@@ -37,10 +37,10 @@ async def call_backend_gdpr_api(message: Message):
             status_code=e.status_code,
             detail=e.detail,
         )
-        # We return None to signal failure, which the calling function will handle.
+
         return None
     except Exception as e:
-        # Fallback for unexpected non-API errors
+
         log.error(f"An unexpected error occurred: {e}", user_id=message.from_user.id)
         return None
 
@@ -106,8 +106,8 @@ async def handle_gdpr_callback(client: Client, callback_query: CallbackQuery):
             result = await call_backend_gdpr_api(callback_query.message)
 
             if not result:
-                # The detailed error has already been logged by call_backend_gdpr_api.
-                # We just show a generic error to the user.
+
+
                 await callback_query.edit_message_text(GENERAL_ERROR)
                 return
 
