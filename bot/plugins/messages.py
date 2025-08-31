@@ -1,4 +1,6 @@
 """Messages plugin for bot that sends all messages to Redis queue."""
+
+import uuid
 from datetime import UTC, datetime
 
 import structlog
@@ -14,7 +16,9 @@ log = structlog.get_logger(__name__)
 async def message(client: Client, message):
     """Log all incoming messages to the queue for async processing."""
     try:
+        correlation_id = str(uuid.uuid4())
         message_data = serialize_message(message)
+        message_data["correlation_id"] = correlation_id
 
         message_data["date"] = message.date
         message_data["created_at"] = datetime.now(UTC)
@@ -29,12 +33,13 @@ async def message(client: Client, message):
         )
 
         log.info(
-            "message received",
+            "message enqueued",
             chat_title=chat_title,
             chat_id=message.chat.id,
             user_identifier=user_identifier,
             user_id=message.from_user.id if message.from_user else None,
             content=msg_content,
+            correlation_id=correlation_id,
         )
 
     except Exception as e:
