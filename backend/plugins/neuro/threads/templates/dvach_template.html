@@ -591,7 +591,8 @@
                 </div>
                 <div id="js-posts">
                     <div class="thread" id="thread-{{ post_id }}">
-                        <div class="post post_type_oppost post_withimg" data-num="{{ post_id }}" id="post-{{ post_id }}">
+                        <div class="post post_type_oppost post_withimg" data-num="{{ post_id }}"
+                            id="post-{{ post_id }}">
                             <div class="post__details" id="post-details-{{ post_id }}">
                                 <input class="turnmeoff" name="delete" type="checkbox" value="{{ post_id }}">
                                 <span class="post__detailpart">
@@ -621,6 +622,7 @@
                                 </span>
                             </div>
 
+                            {% if image_path %}
                             <div class="post__images post__images_type_multi">
                                 <figure class="post__image">
                                     <figcaption class="post__file-attr">
@@ -628,12 +630,6 @@
                                             title="{{ image_name }}">
                                             {{ image_name }}
                                         </a>
-                                        <svg class="icon js-post-findimg desktop" xmlns="http://www.w3.org/2000/svg">
-                                            <use xlink:href="#icon__findimg"></use>
-                                        </svg>
-                                        <svg class="icon js-post-saveimg desktop" xmlns="http://www.w3.org/2000/svg">
-                                            <use xlink:href="#icon__saveimg"></use>
-                                        </svg>
                                         <span class="post__filezise">{{ image_size }}</span>
                                     </figcaption>
                                     <a class="post__image-link" href="{{ image_path }}" target="_blank">
@@ -641,9 +637,10 @@
                                     </a>
                                 </figure>
                             </div>
+                            {% endif %}
 
                             <article class="post__message post__message_op" id="m{{ post_id }}">
-                                {{ post_text }}
+                                {{ post_text|safe }}
                             </article>
                         </div>
 
@@ -711,13 +708,13 @@
                     </symbol>
                     <!-- Dummy symbols for icons used in template.html but not defined in default.css -->
                     <symbol id="icon__findimg" viewBox="0 0 48 48">
-                        <path fill="#ececec" d="M10 20h28v28H10z"/>
-                        <circle fill="#ececec" cx="24" cy="14" r="8"/>
+                        <path fill="#ececec" d="M10 20h28v28H10z" />
+                        <circle fill="#ececec" cx="24" cy="14" r="8" />
                     </symbol>
                     <symbol id="icon__saveimg" viewBox="0 0 48 48">
-                        <path fill="#ececec" d="M10 20h28v28H10z"/>
-                        <path fill="#ececec" d="M22 28h4v12h-4z"/>
-                        <path fill="#ececec" d="M30 32l-6-6-6 6h12z"/>
+                        <path fill="#ececec" d="M10 20h28v28H10z" />
+                        <path fill="#ececec" d="M22 28h4v12h-4z" />
+                        <path fill="#ececec" d="M30 32l-6-6-6 6h12z" />
                     </symbol>
                 </svg>
             </div>

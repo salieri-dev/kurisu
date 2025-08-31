@@ -6,7 +6,8 @@ services:
     volumes:
       - ./backend:/opt/kurisu/backend
       - ./kurisu_core:/opt/kurisu/kurisu_core
-      - ${ALTGIRLS_ASSETS_PATH}:/opt/kurisu/backend/plugins/fun/altgirls/assets
+      - ${ALTGIRLS_ASSETS_PATH}:/opt/kurisu/backend/plugins/fun/altgirls/assets 
+      - ${THREADS_ASSETS_PATH}:/opt/kurisu/backend/plugins/neuro/threads/assets
     ports:
       - "8000:8000"
     restart: no

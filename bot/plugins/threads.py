@@ -1,4 +1,4 @@
-# bot/plugins/threads.py
+# bot/plugins/threads.py (Revised _handle_thread_command)
 
 import base64
 import io
@@ -34,10 +34,26 @@ async def _handle_thread_command(client: Client, message: Message, thread_type: 
     image_bytes = base64.b64decode(response["image_base64"])
     story_text = response["story"]
 
+    caption = story_text
+    if thread_type == "bugurt":
+        # Normalize the bugurt story to handle both single-line ("A@B") and
+        # multi-line ("A\n@\nB") formats from the LLM.
+        # This mirrors the backend's image generation logic for consistency.
+        
+        # 1. Flatten any existing newlines into the '@' separator.
+        normalized_text = story_text.replace("\n", "@")
+        
+        # 2. Split by the separator and filter out any empty parts
+        #    (which can happen if the original had "A\n@\nB" -> "A@@B").
+        parts = [p.strip() for p in normalized_text.split("@") if p.strip()]
+        
+        # 3. Re-join with the correct multi-line separator for the caption.
+        caption = "\n@\n".join(parts)
+
     photo = io.BytesIO(image_bytes)
     photo.name = f"{thread_type}.png"
 
-    await message.reply_photo(photo=photo, caption=story_text, quote=True)
+    await message.reply_photo(photo=photo, caption=caption, quote=True)
     await notification.delete()
 
 

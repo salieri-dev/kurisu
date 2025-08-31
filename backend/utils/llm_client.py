@@ -67,7 +67,7 @@ class LLMClient:
             content = response.choices[0].message.content
             log.info(
                 "Successfully received chat completion",
-                usage=response.usage,
+                usage=response.usage, response=content
             )
             return content
 

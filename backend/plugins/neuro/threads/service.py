@@ -1,10 +1,8 @@
-# backend/plugins/neuro/threads/service.py (Revised)
-
 import base64
+import random
 from typing import Annotated, Literal
 
 from fastapi import Depends
-from plugins.core.config.service import ConfigService, get_config_service
 from pydantic import ValidationError
 from structlog import get_logger
 from structlog.contextvars import bind_contextvars
@@ -12,6 +10,7 @@ from utils.dependencies import get_llm_client
 from utils.exceptions import BadRequestError, LLMError, ServiceError
 from utils.llm_client import LLMClient
 
+from plugins.core.config.service import ConfigService, get_config_service
 from .image_generator import DvachGenerator, FourChanGenerator
 from .models import LLMStoryResponse, ThreadDB, ThreadResponse
 from .prompts import BUGURT_SYSTEM_PROMPT, GREENTEXT_SYSTEM_PROMPT
@@ -58,28 +57,37 @@ class ThreadsService:
             default="anthropic/claude-3.5-sonnet",
             description=f"LLM model used for generating {thread_type} stories.",
         )
-        system_prompt = await self.config_service.get_or_create(
+        system_prompt_template = await self.config_service.get_or_create(
             f"neuro/threads.{thread_type}.system_prompt",
             default=PROMPTS[thread_type],
             description=f"The system prompt for generating {thread_type} stories.",
         )
 
-        if not isinstance(model_name, str) or not isinstance(system_prompt, str):
+        if not isinstance(model_name, str) or not isinstance(system_prompt_template, str):
             raise ServiceError("Invalid configuration found for threads plugin.")
+
+        # --- NEW LOGIC: Generate and format IDs ---
+        post_id = str(random.randint(10000000, 99999999))
+        comment_ids = [str(int(post_id) + i + 1) for i in range(4)]
+        comment_ids_str = ", ".join(comment_ids)
+
+        system_prompt = system_prompt_template.format(
+            post_id=post_id, comment_ids=comment_ids_str
+        )
+        user_prompt = f"The user's theme is: '{topic}'. The post ID is {post_id} and potential comment IDs are {comment_ids_str}."
+        # --- END NEW LOGIC ---
 
         # 2. Call LLM for structured story and comments
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"The user's theme is: '{topic}'"},
+            {"role": "user", "content": user_prompt}, # Use the new user_prompt
         ]
         try:
-            # Get a JSON string from the LLM
             json_string_response = await self.llm_client.chat_completion(
                 messages=messages,
                 model=model_name,
                 response_format={"type": "json_object"},
             )
-            # Parse the JSON string into our Pydantic model
             llm_response = LLMStoryResponse.model_validate_json(json_string_response)
 
         except ValidationError as e:
@@ -88,20 +96,17 @@ class ThreadsService:
                 error=str(e),
                 llm_response=json_string_response,
             )
-            raise LLMError(
-                "The language model returned a malformed response. Please try again."
-            ) from e
+            raise LLMError("The language model returned a malformed response. Please try again.") from e
         except (LLMError, BadRequestError) as e:
             raise e
         except Exception as e:
             logger.exception("An unexpected error occurred during LLM generation.")
-            raise ServiceError(
-                "An unexpected error occurred during LLM generation."
-            ) from e
+            raise ServiceError("An unexpected error occurred during LLM generation.") from e
 
         # 3. Generate image from LLM response
         Generator = GENERATORS[thread_type]
-        image_bytes = Generator().generate(llm_response)
+        # Pass the post_id to the generator
+        image_bytes = Generator().generate(llm_response, post_id)
 
         # 4. Save to database
         thread_data = ThreadDB(
