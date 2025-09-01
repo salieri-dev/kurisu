@@ -11,7 +11,6 @@ from motor.motor_asyncio import (
     AsyncIOMotorCollection,
     AsyncIOMotorDatabase,
 )
-
 from utils.fal_client import FalAIClient
 
 from .llm_client import LLMClient
