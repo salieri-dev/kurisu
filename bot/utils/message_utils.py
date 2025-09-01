@@ -1,3 +1,5 @@
+from collections.abc import Generator
+
 from pyrogram.enums import ChatType
 
 
@@ -25,11 +27,6 @@ def get_message_content(message) -> str:
 
     return content
 
-
-# bot/utils/message_utils.py
-from collections.abc import Generator
-
-# (Other functions like get_user_identifier can remain here)
 
 MAX_MESSAGE_LENGTH = 4096
 

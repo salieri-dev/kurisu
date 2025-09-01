@@ -94,6 +94,6 @@ class FanficService:
 
 
 def get_fanfic_service(
-    service: FanficService = Depends(FanficService),
+    service: Annotated[FanficService, Depends(FanficService)],
 ) -> FanficService:
     return service

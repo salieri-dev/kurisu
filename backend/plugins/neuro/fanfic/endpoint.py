@@ -18,7 +18,7 @@ router = APIRouter()
 async def generate_fanfic_endpoint(
     request: FanficRequest,
     service: Annotated[FanficService, Depends(get_fanfic_service)],
-    headers: dict = Depends(require_telegram_headers),
+    headers: Annotated[dict, Depends(require_telegram_headers)],
 ):
     user_id = int(headers["user_id"])
     chat_id = int(headers["chat_id"])
