@@ -9,6 +9,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from utils.api_client import backend_client
 from utils.decorators import handle_api_errors, nsfw_guard, rate_limit
+from utils.help_registry import command_handler
 
 log = structlog.get_logger(__name__)
 
@@ -62,6 +63,12 @@ async def _handle_thread_command(
 
 
 @Client.on_message(filters.command("bugurt"), group=1)
+@command_handler(
+    commands=["bugurt"],
+    description="Генерирует тред в стиле /b/ Двача.",
+    group="Нейронки",
+    arguments="[тема]",
+)
 @rate_limit(
     config_key_prefix="neuro/threads.bugurt.rate_limit",
     default_seconds=60,
@@ -76,6 +83,12 @@ async def bugurt_command(client: Client, message: Message):
 
 
 @Client.on_message(filters.command("greentext"), group=1)
+@command_handler(
+    commands=["greentext"],
+    description="Генерирует тред в стиле /b/ Форчана.",
+    group="Нейронки",
+    arguments="[тема]",
+)
 @rate_limit(
     config_key_prefix="neuro/threads.greentext.rate_limit",
     default_seconds=60,

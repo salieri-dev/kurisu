@@ -4,12 +4,19 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from utils.api_client import backend_client
 from utils.decorators import handle_api_errors, nsfw_guard, rate_limit
+from utils.help_registry import command_handler
 from utils.message_utils import split_message
 
 log = structlog.get_logger(__name__)
 
 
 @Client.on_message(filters.command("fanfic"), group=1)
+@command_handler(
+    commands=["fanfic"],
+    description="Напишет короткий фанфик на заданную тему и сгенерирует постер.",
+    group="Нейронки",
+    arguments="[тема]",
+)
 @rate_limit("neuro/fanfic.rate_limit", 120, 1, key="user")
 @nsfw_guard
 @handle_api_errors

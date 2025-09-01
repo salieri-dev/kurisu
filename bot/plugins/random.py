@@ -5,11 +5,18 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from utils.api_client import backend_client
 from utils.decorators import handle_api_errors
+from utils.help_registry import command_handler
 
 log = structlog.get_logger(__name__)
 
 
 @Client.on_message(filters.command("choice"), group=1)
+@command_handler(
+    commands=["choice"],
+    description="Выбирает случайный вариант из предложенных.",
+    group="Рандом",
+    arguments="[вариант1;вариант2;...]",
+)
 @handle_api_errors
 async def handle_choice(client: Client, message: Message):
     """Handle /choice command."""
@@ -34,6 +41,9 @@ async def handle_choice(client: Client, message: Message):
 
 
 @Client.on_message(filters.command("roll"), group=1)
+@command_handler(
+    commands=["roll"], description="Бросает шестигранный кубик.", group="Рандом"
+)
 @handle_api_errors
 async def handle_roll(client: Client, message: Message):
     """Handle /roll command."""
@@ -42,6 +52,7 @@ async def handle_roll(client: Client, message: Message):
 
 
 @Client.on_message(filters.command("flip"), group=1)
+@command_handler(commands=["flip"], description="Подбрасывает монетку.", group="Рандом")
 @handle_api_errors
 async def handle_flip(client: Client, message: Message):
     """Handle /flip command."""
@@ -50,6 +61,11 @@ async def handle_flip(client: Client, message: Message):
 
 
 @Client.on_message(filters.command("8ball"), group=1)
+@command_handler(
+    commands=["8ball"],
+    description="Даёт предсказание от магического шара.",
+    group="Рандом",
+)
 @handle_api_errors
 async def handle_8ball(client: Client, message: Message):
     """Handle /8ball command."""
@@ -58,6 +74,12 @@ async def handle_8ball(client: Client, message: Message):
 
 
 @Client.on_message(filters.command("random"), group=1)
+@command_handler(
+    commands=["random"],
+    description="Генерирует случайное число в диапазоне.",
+    group="Рандом",
+    arguments="[min] [max]",
+)
 @handle_api_errors
 async def handle_random(client: Client, message: Message):
     """Handle /random command."""

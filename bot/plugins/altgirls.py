@@ -10,6 +10,7 @@ from pyrogram.types import ChatMember, InputMediaPhoto, Message
 from structlog import get_logger
 from utils.api_client import backend_client
 from utils.decorators import nsfw_guard, rate_limit
+from utils.help_registry import command_handler
 
 log = get_logger(__name__)
 
@@ -156,6 +157,11 @@ def format_source_link(source_link: str) -> str:
 
 
 @Client.on_message(filters.command(["altgirls"]), group=1)
+@command_handler(
+    commands=["altgirls"],
+    description="Присылает 4 рандомных пикчи альтушек.",
+    group="NSFW",
+)
 @rate_limit(
     config_key_prefix="fun/altgirls.rate_limit",
     default_seconds=3,

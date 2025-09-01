@@ -4,6 +4,7 @@ from pyrogram.enums import ChatMemberStatus, ChatType
 from pyrogram.types import Message
 from utils.api_client import backend_client
 from utils.decorators import bind_context
+from utils.help_registry import command_handler
 from utils.redis_utils import redis_client
 
 log = structlog.get_logger(__name__)
@@ -56,6 +57,12 @@ async def get_and_reply_with_config(message: Message, prefix: str = "") -> None:
 
 
 @Client.on_message(filters.command("config"), group=1)
+@command_handler(
+    commands=["config"],
+    description="Управление настройками чата (только для администраторов).",
+    group="Администрирование",
+    arguments="[enable/disable] [nsfw]",
+)
 @bind_context
 async def handle_config(client: Client, message: Message):
     """

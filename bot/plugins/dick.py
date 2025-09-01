@@ -7,6 +7,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from utils.api_client import backend_client
 from utils.decorators import nsfw_guard, rate_limit
+from utils.help_registry import command_handler
 
 log = structlog.get_logger(__name__)
 
@@ -133,6 +134,7 @@ def create_report(attributes: dict[str, Any], name: str) -> str:
 
 
 @Client.on_message(filters.command("dick"), group=1)
+@command_handler(commands=["dick"], description="Измеряет твой пенис.", group="NSFW")
 @nsfw_guard
 @rate_limit(
     config_key_prefix="fun/dick.rate_limit",

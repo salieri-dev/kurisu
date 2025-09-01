@@ -8,6 +8,7 @@ from pyrogram.types import (
 from structlog import get_logger
 from utils.api_client import backend_client
 from utils.exceptions import APIError
+from utils.help_registry import command_handler
 
 log = get_logger(__name__)
 
@@ -43,6 +44,11 @@ async def call_backend_gdpr_api(message: Message):
 
 
 @Client.on_message(filters.command("gdpr"), group=1)
+@command_handler(
+    commands=["gdpr"],
+    description="Удаляет все ваши сообщения из базы данных бота.",
+    group="Утилиты",
+)
 async def gdpr_command(client: Client, message: Message):
     """
     Handle the /gdpr command to initiate the GDPR data deletion process.
