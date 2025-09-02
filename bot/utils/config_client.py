@@ -1,4 +1,3 @@
-# bot/utils/config_client.py
 import json
 from typing import Any
 
@@ -21,7 +20,6 @@ async def get_config(
     provided default value and description.
     """
     try:
-        # JSON-encode the default value to preserve its type over HTTP query params
         default_json = json.dumps(default)
         params = {"default": default_json}
         if description:
@@ -31,11 +29,9 @@ async def get_config(
             f"/core/config/resolve/{key}", message=message, params=params
         )
 
-        # The resolve endpoint now guarantees a 'value' key in the response
         return response.get("value", default)
 
     except APIError as e:
-        # A 404 should no longer happen. This now only catches server errors.
         log.error(
             "API error resolving config, using local default",
             key=key,

@@ -2,7 +2,6 @@
 
 from functools import wraps
 
-# This dictionary will store help info from all plugins
 command_help: dict[str, dict] = {}
 
 
@@ -23,7 +22,6 @@ def command_handler(
     """
 
     def decorator(func):
-        # Register help info for each command in the list
         for cmd in commands:
             command_help[cmd] = {
                 "description": description,

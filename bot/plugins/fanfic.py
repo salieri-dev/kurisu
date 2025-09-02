@@ -1,4 +1,3 @@
-# bot/plugins/fanfic.py
 import structlog
 from pyrogram import Client, filters
 from pyrogram.types import Message
@@ -37,7 +36,6 @@ async def fanfic_command(client: Client, message: Message):
 
     wait_msg = await message.reply_text("⚙️ Генерирую фанфик и постер...", quote=True)
 
-    # Call the backend API
     response = await backend_client.post(
         "/neuro/fanfic/generate", message=message, json={"topic": topic}
     )
@@ -48,11 +46,9 @@ async def fanfic_command(client: Client, message: Message):
 
     await wait_msg.delete()
 
-    # Send the image with a title caption
     await message.reply_photo(
         photo=image_url, caption=f"🎨 **{title}**\n\n*Текст фанфика ниже.*", quote=True
     )
 
-    # Send the fanfic content, splitting if necessary
     for part in split_message(content):
         await message.reply_text(part, quote=True, disable_web_page_preview=True)

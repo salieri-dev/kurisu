@@ -1,4 +1,3 @@
-# bot/plugins/help.py
 """Dynamic help command that builds its output from the central registry."""
 
 import structlog
@@ -6,8 +5,6 @@ from pyrogram import Client, filters
 from pyrogram.enums import ChatType
 from pyrogram.types import Message
 from utils.api_client import backend_client
-
-# Import the shared help dictionary
 from utils.help_registry import command_help
 from utils.redis_utils import redis_client
 
@@ -20,7 +17,7 @@ async def is_nsfw_enabled(message: Message) -> bool:
     Mirrors the logic in the nsfw_guard decorator for consistency.
     """
     if message.chat.type == ChatType.PRIVATE:
-        return True  # NSFW is always "enabled" in DMs
+        return True
 
     cache_key = f"chat_config:{message.chat.id}:nsfw_enabled"
     try:
@@ -30,13 +27,11 @@ async def is_nsfw_enabled(message: Message) -> bool:
     except Exception as e:
         log.warning("Redis check failed in help command", error=str(e))
 
-    # Cache miss, fall back to API
     try:
         response = await backend_client.get(
             f"/core/chat_config/{message.chat.id}/nsfw_enabled", message=message
         )
         api_value = response.get("param_value", False)
-        # Cache the result for next time
         await redis_client.set(cache_key, "1" if api_value else "0", ex=300)
         return bool(api_value)
     except Exception:
@@ -50,7 +45,6 @@ async def help_command(client: Client, message: Message):
     try:
         nsfw_allowed = await is_nsfw_enabled(message)
 
-        # Group commands by their handler definition to avoid duplicates
         handlers: dict[str, dict] = {}
         for cmd, info in command_help.items():
             key = f"{info['group']}:{info['description']}"
@@ -72,19 +66,17 @@ async def help_command(client: Client, message: Message):
             "NSFW": "🔞",
         }
 
-        # Group handlers by category
         grouped_handlers: dict[str, list[dict]] = {}
         for handler in handlers.values():
             group = handler["group"]
             if group == "NSFW" and not nsfw_allowed:
-                continue  # Skip NSFW commands if not allowed in this chat
+                continue
 
             if group not in grouped_handlers:
                 grouped_handlers[group] = []
             handler["commands"].sort()
             grouped_handlers[group].append(handler)
 
-        # Build the help message
         help_text = ["**Доступные команды:**"]
         sorted_groups = sorted(
             grouped_handlers.items(), key=lambda item: item[0] != "NSFW"
@@ -100,7 +92,6 @@ async def help_command(client: Client, message: Message):
                 description = handler["description"]
                 help_text.append(f"• {cmds}{args} — {description}")
 
-        # Add passive functionality section
         help_text.extend(
             [
                 "\n**Пассивный функционал:**",
@@ -118,8 +109,8 @@ async def help_command(client: Client, message: Message):
             "\n".join(help_text), quote=True, disable_web_page_preview=True
         )
 
-    except Exception as e:
-        log.error("Error in /help command", error=str(e), exc_info=True)
+    except Exception:
+        log.exception("An unhandled error occurred in /help command")
         await message.reply_text(
             "❌ Произошла ошибка при формировании списка команд.", quote=True
         )

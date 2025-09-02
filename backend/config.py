@@ -1,5 +1,3 @@
-# backend/config.py (Revised)
-
 from typing import Any
 
 from pydantic import Field, HttpUrl, MongoDsn, RedisDsn

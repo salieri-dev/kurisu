@@ -6,7 +6,7 @@ import structlog
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from utils.api_client import backend_client
-from utils.decorators import nsfw_guard, rate_limit
+from utils.decorators import handle_api_errors, nsfw_guard, rate_limit
 from utils.help_registry import command_handler
 
 log = structlog.get_logger(__name__)
@@ -143,6 +143,7 @@ def create_report(attributes: dict[str, Any], name: str) -> str:
     key="user",
     silent=False,
 )
+@handle_api_errors
 async def handle_dick(client: Client, message: Message):
     """Handle /dick command."""
     try:
@@ -165,16 +166,14 @@ async def handle_dick(client: Client, message: Message):
                 await message.reply_photo(
                     photo=io.BytesIO(image_bytes), caption=report_text
                 )
-            except Exception as e:
-                log.error(
-                    "Error decoding or sending dick image", error=str(e), exc_info=True
-                )
+            except Exception:
+                log.exception("Error decoding or sending dick image")
                 await message.reply_text(report_text)
         else:
             await message.reply_text(report_text)
 
-    except Exception as e:
-        log.error("Error in dick command", error=str(e), exc_info=True)
+    except Exception:
+        log.exception("An unhandled error occurred in /dick command")
         await message.reply_text(
             "Произошла неожиданная ошибка. Мы знаем о проблеме и работаем над ней. Попробуйте позже"
         )

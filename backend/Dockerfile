@@ -1,5 +1,3 @@
-# Use a base image that is compatible with wkhtmltopdf's dependencies.
-# python:3.11-slim-bullseye is based on Debian 11 "Bullseye".
 FROM python:3.11-slim-bullseye
 
 # Install all system dependencies (build-time and runtime).

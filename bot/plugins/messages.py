@@ -42,5 +42,5 @@ async def message(client: Client, message):
             correlation_id=correlation_id,
         )
 
-    except Exception as e:
-        log.error("Error logging message", error=str(e), exc_info=True)
+    except Exception:
+        log.exception("Error logging message")

@@ -9,7 +9,7 @@ from pyrogram.enums import ChatType
 from pyrogram.types import ChatMember, InputMediaPhoto, Message
 from structlog import get_logger
 from utils.api_client import backend_client
-from utils.decorators import nsfw_guard, rate_limit
+from utils.decorators import handle_api_errors, nsfw_guard, rate_limit
 from utils.help_registry import command_handler
 
 log = get_logger(__name__)
@@ -170,8 +170,10 @@ def format_source_link(source_link: str) -> str:
     silent=False,
 )
 @nsfw_guard
+@handle_api_errors
 async def handle_altgirls(client: Client, message: Message):
     """Handle /altgirls command: fetch images from backend and send with funny caption."""
+    notification = None
     try:
         count = 4
 
@@ -187,7 +189,6 @@ async def handle_altgirls(client: Client, message: Message):
 
         images = result.get("images", [])
         if not images:
-            await notification.delete()
             await message.reply_text(NO_IMAGES_FOUND, quote=True)
             return
 
@@ -220,31 +221,32 @@ async def handle_altgirls(client: Client, message: Message):
 
         media_group = []
         for idx, img in enumerate(images):
-            try:
-                raw = base64.b64decode(img["base64_data"])
-                bio = io.BytesIO(raw)
-
-                bio.name = img.get("filename") or f"image_{idx + 1}.jpg"
-                if idx == 0:
-                    media_group.append(
-                        InputMediaPhoto(media=bio, caption=combined_caption)
-                    )
-                else:
-                    media_group.append(InputMediaPhoto(media=bio))
-            except Exception as e:
-                log.error(f"Failed to prepare image {idx + 1}: {e}")
+            raw = base64.b64decode(img["base64_data"])
+            bio = io.BytesIO(raw)
+            bio.name = img.get("filename") or f"image_{idx + 1}.jpg"
+            if idx == 0:
+                media_group.append(InputMediaPhoto(media=bio, caption=combined_caption))
+            else:
+                media_group.append(InputMediaPhoto(media=bio))
 
         if not media_group:
-            await notification.delete()
             await message.reply_text(GENERAL_ERROR, quote=True)
             return
 
         await message.reply_media_group(media=media_group, quote=True)
-        await notification.delete()
 
-    except Exception as e:
-        log.error(f"Error in /altgirls command: {e}")
+    except Exception:
+        log.exception("An unhandled error occurred in /altgirls command")
         try:
             await message.reply_text(GENERAL_ERROR, quote=True)
         except Exception:
-            pass
+            log.exception("Failed to send error message to user in /altgirls handler")
+
+    finally:
+        if notification:
+            try:
+                await notification.delete()
+            except Exception:
+                log.warning(
+                    "Failed to delete notification message, it may have been deleted already."
+                )

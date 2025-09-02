@@ -1,4 +1,3 @@
-# bot/utils/decorators.py
 import functools
 import uuid
 from typing import Literal
@@ -9,14 +8,13 @@ from pyrogram.enums import ChatType
 from pyrogram.types import Message
 
 from .api_client import backend_client
-from .config_client import get_config  # Import the new function
+from .config_client import get_config
 from .exceptions import APIError
 from .redis_utils import redis_client
 
 log = structlog.get_logger(__name__)
 
 
-# ... (handle_api_errors and bind_context decorators remain unchanged) ...
 def handle_api_errors(func):
     """
     Decorator to catch and handle APIError exceptions from the backend client.
@@ -92,7 +90,6 @@ def rate_limit(
     def decorator(func):
         @functools.wraps(func)
         async def wrapper(client: Client, message: Message, *args, **kwargs):
-            # Fetch dynamic config with fallbacks and descriptions for auto-init
             seconds = await get_config(
                 f"{config_key_prefix}.seconds",
                 message,
@@ -106,7 +103,6 @@ def rate_limit(
                 description=f"Number of allowed requests in the window for {func.__name__}.",
             )
 
-            # ... rest of the rate limit logic is identical ...
             if key == "user":
                 if not message.from_user:
                     return
@@ -138,9 +134,9 @@ def rate_limit(
                             f"⏳ Пожалуйста, подождите {ttl} секунд перед повторным использованием этой команды."
                         )
                     return
-            except Exception as e:
-                log.error("Redis error in rate limiter", error=str(e), exc_info=True)
-                pass  # Fail open
+            except Exception:
+                log.exception("Redis error in rate limiter, failing open")
+                pass
 
             return await func(client, message, *args, **kwargs)
 
@@ -202,12 +198,10 @@ def nsfw_guard(func):
                 )
                 return
 
-        except Exception as e:
-            log.error(
-                "Failed to check NSFW guard",
-                error=str(e),
+        except Exception:
+            log.exception(
+                "Failed to check NSFW guard, blocking command as a precaution",
                 func_name=func.__name__,
-                exc_info=True,
             )
             await message.reply_text(
                 "❌ Не удалось проверить настройки чата. Пожалуйста, попробуйте позже."

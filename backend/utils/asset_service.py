@@ -52,7 +52,6 @@ class LocalAssetService:
         if not category_path.is_dir():
             raise NotFoundError(f"Asset category '{category}' not found.")
 
-        # Use rglob for recursive search, more modern than os.walk
         all_files = [
             p
             for p in category_path.rglob("*")
@@ -62,7 +61,6 @@ class LocalAssetService:
         if not all_files:
             raise NotFoundError(f"No assets found in category '{category}'.")
 
-        # Ensure we don't request more samples than available
         num_to_sample = min(count, len(all_files))
         selected_paths = random.sample(all_files, num_to_sample)
 
@@ -81,8 +79,6 @@ class LocalAssetService:
         return asset_details
 
 
-# --- Dependency Injection ---
-
 _asset_service_instance = None
 
 
@@ -93,7 +89,6 @@ def get_asset_service() -> AssetService:
     """
     global _asset_service_instance
     if _asset_service_instance is None:
-        # The base path is the 'plugins' directory inside 'backend'
         base_plugins_path = Path(__file__).parent.parent / "plugins"
         _asset_service_instance = LocalAssetService(base_path=base_plugins_path)
     return _asset_service_instance

@@ -38,8 +38,11 @@ async def call_backend_gdpr_api(message: Message):
         )
 
         return None
-    except Exception as e:
-        log.error(f"An unexpected error occurred: {e}", user_id=message.from_user.id)
+    except Exception:
+        log.exception(
+            "An unexpected error occurred in GDPR API call",
+            user_id=message.from_user.id,
+        )
         return None
 
 
@@ -74,10 +77,8 @@ async def gdpr_command(client: Client, message: Message):
             quote=True,
         )
 
-    except Exception as e:
-        log.error(
-            "Error handling gdpr command", error=str(e), user_id=message.from_user.id
-        )
+    except Exception:
+        log.exception("Error handling /gdpr command", user_id=message.from_user.id)
         await message.reply(
             "❌ Произошла ошибка при обработке запроса на удаление данных.", quote=True
         )
@@ -125,11 +126,9 @@ async def handle_gdpr_callback(client: Client, callback_query: CallbackQuery):
         else:
             await callback_query.answer("Неизвестное действие")
 
-    except Exception as e:
-        log.error(
-            "Error handling GDPR callback",
-            error=str(e),
-            user_id=callback_query.from_user.id,
+    except Exception:
+        log.exception(
+            "Error handling GDPR callback", user_id=callback_query.from_user.id
         )
         await callback_query.edit_message_text(
             "❌ Произошла ошибка при обработке запроса на удаление данных."

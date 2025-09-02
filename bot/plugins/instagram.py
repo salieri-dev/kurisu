@@ -121,10 +121,5 @@ async def instagram_handler(client: Client, message: Message):
                 await message.reply_photo(photo=url, caption=caption, quote=True)
         log.info("Successfully sent Instagram media to chat", media_code=media_code)
 
-    except Exception as e:
-        log.error(
-            "Error sending Instagram media to Telegram",
-            media_code=media_code,
-            error=str(e),
-            exc_info=True,
-        )
+    except Exception:
+        log.exception("Error sending Instagram media to Telegram")

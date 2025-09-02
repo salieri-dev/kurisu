@@ -52,33 +52,26 @@ def split_message(text: str) -> Generator[str, None, None]:
         return
 
     while len(text) > 0:
-        # If the remaining text is within the limit, yield it and finish.
         if len(text) <= MAX_MESSAGE_LENGTH:
             yield text
             break
 
-        # Find the best possible split point within the allowed length.
         chunk = text[:MAX_MESSAGE_LENGTH]
         split_pos = -1
 
-        # Prefer splitting at the last double newline (paragraph).
         last_double_newline = chunk.rfind("\n\n")
         if last_double_newline != -1:
-            split_pos = last_double_newline + 2  # Include the newlines in the split
+            split_pos = last_double_newline + 2
         else:
-            # Otherwise, split at the last single newline.
             last_newline = chunk.rfind("\n")
             if last_newline != -1:
                 split_pos = last_newline + 1
             else:
-                # Otherwise, split at the last space.
                 last_space = chunk.rfind(" ")
                 if last_space != -1:
                     split_pos = last_space + 1
                 else:
-                    # If no good split point is found, do a hard cut.
                     split_pos = MAX_MESSAGE_LENGTH
 
-        # Yield the chunk and update the remaining text.
         yield text[:split_pos]
         text = text[split_pos:]
