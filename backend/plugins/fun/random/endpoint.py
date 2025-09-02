@@ -47,8 +47,6 @@ def make_choice(
 def roll_dice():
     """Roll a dice (1-6)."""
 
-    _ = 1 / 0
-
     return DiceResponse(**random_service.roll_dice())
 
 

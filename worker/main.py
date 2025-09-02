@@ -30,6 +30,7 @@ class MessageWorker:
         self.retry_queue_name = "telegram_messages_retry"
         self.dead_letter_queue_name = "telegram_messages_dead_letter"
         self.processing_batch: list[dict[str, Any]] = []
+        self.batch_lock = asyncio.Lock()
         self.last_batch_sent_time = asyncio.get_event_loop().time()
 
     async def connect(self):
@@ -124,7 +125,11 @@ class MessageWorker:
 
             self.processing_batch.append(message)
             if len(self.processing_batch) >= settings.batch_size:
-                await self.send_current_batch()
+                async with self.batch_lock:
+                    # Re-check condition in case another task already sent the batch
+                    if self.processing_batch:
+                        self.logger.info("Sending batch due to size limit")
+                        await self.send_current_batch()
 
         except json.JSONDecodeError:
             self.logger.error("Failed to parse message JSON", message_data=message_data)
@@ -196,8 +201,12 @@ class MessageWorker:
                         self.processing_batch
                         and time_since_last_batch >= settings.batch_timeout_seconds
                     ):
-                        self.logger.info("Sending batch due to timeout")
-                        await self.send_current_batch()
+                        async with (
+                            self.batch_lock
+                        ):  # Acquire lock for timeout-based sending
+                            if self.processing_batch:  # Re-check inside lock
+                                self.logger.info("Sending batch due to timeout")
+                                await self.send_current_batch()
                 except asyncio.CancelledError:
                     break
                 except (RedisConnectionError, ConnectionFailure):

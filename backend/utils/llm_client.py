@@ -1,10 +1,13 @@
-# backend/utils/llm_client.py (Revised chat_completion)
+from typing import TypeVar
 
 import structlog
 from openai import APIConnectionError, APIStatusError, AsyncOpenAI
+from pydantic import BaseModel, ValidationError
 from utils.exceptions import LLMError, ServiceError
 
 logger = structlog.get_logger(__name__)
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class LLMClient:
@@ -38,15 +41,7 @@ class LLMClient:
     ) -> str:
         """
         Performs a chat completion request to the configured LLM API.
-
-        Args:
-            messages: A list of message dictionaries.
-            model: The model to use for the completion.
-            **kwargs: Additional arguments to pass to the OpenAI client's create method
-                      (e.g., response_format, temperature).
-
-        Returns:
-            The content of the assistant's response message as a string.
+        (This method remains unchanged and can still be used for simple text responses)
         """
         log = logger.bind(model=model, api_provider="openai_compatible")
         log.info(
@@ -57,21 +52,14 @@ class LLMClient:
             response = await self._client.chat.completions.create(
                 model=model, messages=messages, **kwargs
             )
-
             if not response.choices or not response.choices[0].message.content:
                 log.error(
                     "Invalid response structure from LLM API", response_data=response
                 )
                 raise LLMError("Received an invalid response structure from the LLM.")
-
             content = response.choices[0].message.content
-            log.info(
-                "Successfully received chat completion",
-                usage=response.usage,
-                response=content,
-            )
+            log.info("Successfully received chat completion", usage=response.usage)
             return content
-
         except APIStatusError as e:
             log.error(
                 "LLM API returned an error status",
@@ -79,8 +67,7 @@ class LLMClient:
                 response_body=e.response.text,
             )
             raise LLMError(
-                f"LLM API returned an error: {e.status_code} - {e.response.text}",
-                status_code=e.status_code,
+                f"LLM API returned an error: {e.status_code}", status_code=e.status_code
             ) from e
         except APIConnectionError as e:
             log.error("Network error during LLM API request", error=str(e))
@@ -91,4 +78,46 @@ class LLMClient:
             log.exception("An unexpected error occurred in LLMClient")
             raise ServiceError(
                 "An unexpected error occurred while contacting the LLM."
+            ) from e
+
+    async def structured_chat_completion(
+        self,
+        messages: list[dict[str, str]],
+        model: str,
+        response_model: type[T],
+        **kwargs,
+    ) -> T:
+        """
+        Performs a chat completion and parses the JSON response into a Pydantic model.
+        This method enforces that the API is requested to return a JSON object.
+
+        Args:
+            messages: A list of message dictionaries.
+            model: The model to use for the completion.
+            response_model: The Pydantic model class to validate the response against.
+            **kwargs: Additional arguments to pass to the OpenAI client.
+
+        Returns:
+            An instance of the provided Pydantic response_model.
+
+        Raises:
+            LLMError: If the API response is not valid JSON or doesn't match the model schema.
+        """
+        kwargs["response_format"] = {"type": "json_object"}
+
+        json_string_response = await self.chat_completion(
+            messages=messages, model=model, **kwargs
+        )
+
+        try:
+            return response_model.model_validate_json(json_string_response)
+        except ValidationError as e:
+            logger.error(
+                "LLM failed to produce valid JSON for Pydantic model",
+                error=str(e),
+                model_name=response_model.__name__,
+                raw_response=json_string_response,
+            )
+            raise LLMError(
+                "The language model returned a malformed response that could not be validated. Please try again."
             ) from e

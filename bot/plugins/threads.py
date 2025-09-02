@@ -6,6 +6,7 @@ from typing import Literal
 
 import structlog
 from pyrogram import Client, filters
+from pyrogram.enums import ParseMode
 from pyrogram.types import Message
 from utils.api_client import backend_client
 from utils.decorators import handle_api_errors, nsfw_guard, rate_limit
@@ -58,7 +59,9 @@ async def _handle_thread_command(
     photo = io.BytesIO(image_bytes)
     photo.name = f"{thread_type}.png"
 
-    await message.reply_photo(photo=photo, caption=caption, quote=True)
+    await message.reply_photo(
+        photo=photo, caption=caption, quote=True, parse_mode=ParseMode.DISABLED
+    )
     await notification.delete()
 
 
