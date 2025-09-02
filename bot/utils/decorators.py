@@ -1,11 +1,13 @@
 import functools
 import uuid
-from typing import Literal
+from typing import Any, Literal
 
 import structlog
 from pyrogram import Client
 from pyrogram.enums import ChatType
 from pyrogram.types import Message
+
+from utils.chat_config import get_chat_config
 
 from .api_client import backend_client
 from .config_client import get_config
@@ -144,68 +146,49 @@ def rate_limit(
 
     return decorator
 
-
-def nsfw_guard(func):
+def require_chat_config(
+    key: str,
+    expected_value: Any = True,
+    error_message: str = "❌ Эта команда отключена в этом чате.",
+):
     """
-    A decorator that guards a command based on chat settings.
-    It uses a Redis cache to avoid frequent API calls.
+    A generic decorator factory to guard commands based on a dynamic chat configuration.
+
+    Args:
+        key: The configuration key to check (e.g., 'nsfw_enabled').
+        expected_value: The command will only run if the config value matches this.
+        error_message: The message to send to the user if the check fails.
     """
 
-    @functools.wraps(func)
-    async def wrapper(client: Client, message: Message, *args, **kwargs):
-        if message.chat.type == ChatType.PRIVATE:
-            return await func(client, message, *args, **kwargs)
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(client: Client, message: Message, *args, **kwargs):
+            # Fetch the config value using our universal utility
+            current_value = await get_chat_config(message, key, default=False)
 
-        cache_key = f"chat_config:{message.chat.id}:nsfw_enabled"
-        nsfw_enabled = False
-
-        try:
-            cached_value = await redis_client.get(cache_key)
-
-            if cached_value is not None:
-                nsfw_enabled = cached_value == "1"
-                log.debug(
-                    "NSFW guard cache hit",
-                    chat_id=message.chat.id,
-                    nsfw_enabled=nsfw_enabled,
-                )
-            else:
-                log.debug("NSFW guard cache miss, calling API", chat_id=message.chat.id)
-                response = await backend_client.get(
-                    f"/core/chat_config/{message.chat.id}/nsfw_enabled", message=message
-                )
-                api_value = response.get("param_value") or False
-                nsfw_enabled = bool(api_value)
-
-                await redis_client.set(cache_key, "1" if nsfw_enabled else "0", ex=300)
-                log.info(
-                    "NSFW config cached",
-                    chat_id=message.chat.id,
-                    nsfw_enabled=nsfw_enabled,
-                )
-
-            if nsfw_enabled:
+            if current_value == expected_value:
                 return await func(client, message, *args, **kwargs)
             else:
                 log.warning(
-                    "NSFW command blocked by guard",
+                    "Command blocked by require_chat_config guard",
                     func_name=func.__name__,
                     chat_id=message.chat.id,
+                    required_key=key,
+                    required_value=expected_value,
+                    current_value=current_value,
                 )
-                await message.reply_text(
-                    "🔞 Эта команда отключена, так как NSFW-контент запрещен в этом чате.\n"
-                    "Администратор может включить его с помощью команды `/config enable nsfw`."
-                )
+                await message.reply_text(error_message, quote=True)
                 return
 
-        except Exception:
-            log.exception(
-                "Failed to check NSFW guard, blocking command as a precaution",
-                func_name=func.__name__,
-            )
-            await message.reply_text(
-                "❌ Не удалось проверить настройки чата. Пожалуйста, попробуйте позже."
-            )
-            return
+        return wrapper
 
-    return wrapper
+    return decorator
+
+nsfw_guard = require_chat_config(
+    key='nsfw_enabled',
+    expected_value=True,
+    error_message=(
+        "🔞 Эта команда отключена, так как NSFW-контент запрещен в этом чате.\n"
+        "Администратор может включить его с помощью команды `/config enable nsfw`."
+    )
+)
