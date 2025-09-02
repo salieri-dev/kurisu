@@ -13,9 +13,7 @@ async def help_command(client: Client, message: Message):
     try:
         # The complex, duplicated logic is now replaced by a single, clean call
         # to the universal chat configuration utility.
-        nsfw_allowed = await get_chat_config(
-            message, key="nsfw_enabled", default=False
-        )
+        nsfw_allowed = await get_chat_config(message, key="nsfw_enabled", default=False)
 
         # Group commands by their handler definition to avoid showing duplicate descriptions
         handlers: dict[str, dict] = {}
@@ -54,7 +52,7 @@ async def help_command(client: Client, message: Message):
 
         # Build the final help message string
         help_text = ["**Доступные команды:**"]
-        
+
         # Sort groups to ensure a consistent order, keeping NSFW at the end
         sorted_groups = sorted(
             grouped_handlers.items(), key=lambda item: item[0] == "NSFW"
@@ -67,7 +65,7 @@ async def help_command(client: Client, message: Message):
             # Sort commands within each group alphabetically
             for handler in sorted(h_list, key=lambda x: x["commands"][0]):
                 cmds = ", ".join(f"`/{cmd}`" for cmd in handler["commands"])
-                args = f" {handler['arguments']}" if handler['arguments'] else ""
+                args = f" {handler['arguments']}" if handler["arguments"] else ""
                 description = handler["description"]
                 help_text.append(f"• {cmds}{args} — {description}")
 

@@ -4,12 +4,10 @@ from typing import Any, Literal
 
 import structlog
 from pyrogram import Client
-from pyrogram.enums import ChatType
 from pyrogram.types import Message
 
 from utils.chat_config import get_chat_config
 
-from .api_client import backend_client
 from .config_client import get_config
 from .exceptions import APIError
 from .redis_utils import redis_client
@@ -146,6 +144,7 @@ def rate_limit(
 
     return decorator
 
+
 def require_chat_config(
     key: str,
     expected_value: Any = True,
@@ -184,11 +183,12 @@ def require_chat_config(
 
     return decorator
 
+
 nsfw_guard = require_chat_config(
-    key='nsfw_enabled',
+    key="nsfw_enabled",
     expected_value=True,
     error_message=(
         "🔞 Эта команда отключена, так как NSFW-контент запрещен в этом чате.\n"
         "Администратор может включить его с помощью команды `/config enable nsfw`."
-    )
+    ),
 )
