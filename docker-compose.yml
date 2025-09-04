@@ -138,7 +138,7 @@ services:
       start_period: 10s
       
   prometheus:
-    image: prom/prometheus:v2.47.2
+    image: prom/prometheus:latest
     restart: unless-stopped
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
@@ -152,9 +152,25 @@ services:
       - "9090:9090"
     networks:
       - app-network
+  node-exporter:
+    image: prom/node-exporter:latest
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    networks:
+      - app-network
 
   loki:
-    image: grafana/loki:2.9.2
+    image: grafana/loki:latest
     restart: unless-stopped
     volumes:
       - ./monitoring/loki/config.yml:/etc/loki/config.yml
@@ -166,7 +182,7 @@ services:
       - app-network
 
   promtail:
-    image: grafana/promtail:2.9.2
+    image: grafana/promtail:latest
     restart: unless-stopped
     volumes:
       - ./monitoring/promtail/config.yml:/etc/promtail/config.yml
@@ -179,10 +195,9 @@ services:
       - loki
 
   grafana:
-    image: grafana/grafana-oss:10.1.5
+    image: grafana/grafana-oss:latest
     restart: unless-stopped
     volumes:
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ./.data/grafana:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
@@ -198,7 +213,7 @@ services:
       - jaeger
 
   otel-collector:
-      image: otel/opentelemetry-collector-contrib:0.92.0
+      image: otel/opentelemetry-collector-contrib:latest
       restart: unless-stopped
       command: ["--config=/etc/otelcol-contrib/config.yaml"]
       volumes:
@@ -210,7 +225,7 @@ services:
         - jaeger
 
   jaeger:
-      image: jaegertracing/all-in-one:1.50
+      image: jaegertracing/all-in-one:latest
       restart: unless-stopped
       ports:
         - "16686:16686" # UI Port - This is the only one we need exposed
