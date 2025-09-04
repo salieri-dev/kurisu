@@ -3,6 +3,7 @@ import uuid
 from typing import Any, Literal
 
 import structlog
+from config import credentials
 from pyrogram import Client
 from pyrogram.types import Message
 
@@ -13,6 +14,38 @@ from .exceptions import APIError
 from .redis_utils import redis_client
 
 log = structlog.get_logger(__name__)
+
+OWNER_ID = credentials.owner_id
+
+
+def owner_only(func):
+    """
+    A decorator to restrict a command to the bot owner.
+
+    If an unauthorized user tries to execute the command, it logs a warning
+    and silently ignores the request, providing no feedback to the user.
+    """
+
+    @functools.wraps(func)
+    async def wrapper(client: Client, message: Message, *args, **kwargs):
+        if not message.from_user:
+            # Cannot identify user (e.g., anonymous admin, channel post)
+            return
+
+        if message.from_user.id == OWNER_ID:
+            # User is the owner, proceed with the command
+            return await func(client, message, *args, **kwargs)
+        else:
+            # User is not the owner, log and silently drop the request
+            log.warning(
+                "Unauthorized access attempt to owner-only command",
+                user_id=message.from_user.id,
+                username=message.from_user.username or "N/A",
+                command_text=message.text,
+            )
+            return  # Stop execution, send no reply
+
+    return wrapper
 
 
 def handle_api_errors(func):

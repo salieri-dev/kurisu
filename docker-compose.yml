@@ -10,7 +10,7 @@ services:
       - ${THREADS_ASSETS_PATH}:/opt/kurisu/backend/plugins/neuro/threads/assets
     ports:
       - "8000:8000"
-    restart: no
+    restart: unless-stopped
     networks:
       - app-network
     env_file:
@@ -19,9 +19,16 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - SERVICE_NAME=backend
+      - OTEL_SERVICE_NAME=backend
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - REDIS_URL=redis://redis:6379
+      - JSON_LOGS=true
+    labels:
+      - "logging=promtail"
+      - "service_name=backend"
     depends_on:
       - mongodb
+      - otel-collector
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -36,7 +43,7 @@ services:
     volumes:
       - ./bot:/opt/kurisu/bot
       - ./kurisu_core:/opt/kurisu/kurisu_core
-    restart: no
+    restart: unless-stopped
     networks:
       - app-network
     env_file:
@@ -45,11 +52,19 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - SERVICE_NAME=bot
+      - OTEL_SERVICE_NAME=bot
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - BACKEND_URL=http://backend:8000
       - REDIS_URL=redis://redis:6379
+      - JSON_LOGS=true
+    labels:
+      - "logging=promtail"
+      - "service_name=bot"
     depends_on:
       backend:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
 
   worker:
     build:
@@ -58,7 +73,7 @@ services:
     volumes:
       - ./worker:/opt/kurisu/worker
       - ./kurisu_core:/opt/kurisu/kurisu_core
-    restart: no
+    restart: unless-stopped
     networks:
       - app-network
     env_file:
@@ -67,16 +82,19 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - SERVICE_NAME=worker
+      - OTEL_SERVICE_NAME=worker
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - REDIS_URL=redis://redis:6379
       - BACKEND_URL=http://backend:8000
+      - JSON_LOGS=true
+    labels:
+      - "logging=promtail"
+      - "service_name=worker"
     depends_on:
-      backend:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
-
+      - backend
+      - redis
+      - mongodb
+      - otel-collector
 
   mongodb:
     image: mongo:latest
@@ -102,7 +120,7 @@ services:
 
   redis:
     image: redis:alpine
-    restart: no
+    restart: always
     ports:
       - "${TAILSCALE_IP}:6379:6379"
     env_file:
@@ -118,6 +136,86 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
+      
+  prometheus:
+    image: prom/prometheus:v2.47.2
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./.data/prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    networks:
+      - app-network
+
+  loki:
+    image: grafana/loki:2.9.2
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/loki/config.yml:/etc/loki/config.yml
+      - ./.data/loki:/loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/config.yml
+    networks:
+      - app-network
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/promtail/config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./.data/promtail:/var/lib/promtail/positions
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - app-network
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana-oss:10.1.5
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./.data/grafana:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+    depends_on:
+      - loki
+      - prometheus
+      - jaeger
+
+  otel-collector:
+      image: otel/opentelemetry-collector-contrib:0.92.0
+      restart: unless-stopped
+      command: ["--config=/etc/otelcol-contrib/config.yaml"]
+      volumes:
+        - ./monitoring/otel-collector/config.yml:/etc/otelcol-contrib/config.yaml
+      networks:
+        - app-network
+      depends_on:
+        - loki
+        - jaeger
+
+  jaeger:
+      image: jaegertracing/all-in-one:1.50
+      restart: unless-stopped
+      ports:
+        - "16686:16686" # UI Port - This is the only one we need exposed
+      networks:
+        - app-network
 
 networks:
   app-network:

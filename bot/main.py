@@ -4,9 +4,11 @@ import os
 
 import structlog
 from config import credentials
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from pyrogram import Client
 
 from kurisu_core.logging_config import setup_structlog
+from kurisu_core.tracing import setup_tracing
 
 logger = structlog.get_logger(__name__)
 
@@ -14,6 +16,8 @@ logger = structlog.get_logger(__name__)
 def main():
     """Main bot function."""
     setup_structlog(json_logs=os.getenv("JSON_LOGS", "false").lower() == "true")
+    setup_tracing(service_name=os.getenv("SERVICE_NAME", "bot"))
+    HTTPXClientInstrumentor().instrument()
     try:
         app = Client(
             credentials.bot.name,

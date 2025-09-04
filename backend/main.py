@@ -6,6 +6,8 @@ from config import settings
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorClient
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from plugins import init_plugins
 from prometheus_fastapi_instrumentator import Instrumentator
 from pymongo.errors import ConnectionFailure
@@ -16,6 +18,7 @@ from utils.middleware import api_key_middleware, structured_logging_middleware
 from utils.redis_client import close_redis_client, init_redis_client
 
 from kurisu_core.logging_config import setup_structlog
+from kurisu_core.tracing import setup_tracing
 
 EXCLUDED_PLUGINS = []
 
@@ -29,6 +32,8 @@ async def lifespan(app: FastAPI):
     Manage the application's lifespan.
     Connects to all required services on startup and gracefully disconnects on shutdown.
     """
+    setup_tracing(service_name=settings.service_name)
+    HTTPXClientInstrumentor().instrument()
     logger.info("Application starting up...", service=settings.service_name)
 
     instrumentator.expose(app)
@@ -73,6 +78,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+FastAPIInstrumentor.instrument_app(app)
 
 instrumentator = Instrumentator(
     should_group_status_codes=True,

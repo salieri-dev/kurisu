@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import sys
 import time
 import uuid
@@ -8,6 +9,8 @@ from typing import Any
 import structlog
 from config import settings
 from motor.motor_asyncio import AsyncIOMotorClient
+from opentelemetry import trace
+from opentelemetry.propagate import extract
 from pymongo.errors import ConnectionFailure
 from redis.asyncio import Redis
 from redis.exceptions import BusyLoadingError
@@ -16,6 +19,7 @@ from utils.clients import get_mongo_client, get_mongo_database, get_redis_client
 from utils.repository import MessageRepository, ServiceError
 
 from kurisu_core.logging_config import setup_structlog
+from kurisu_core.tracing import setup_tracing
 
 
 class MessageWorker:
@@ -88,48 +92,66 @@ class MessageWorker:
         if not messages or not self.repository:
             return True
 
-        correlation_id = messages[0].get("correlation_id") or str(uuid.uuid4())
-        log = self.logger.bind(correlation_id=correlation_id, batch_size=len(messages))
+        tracer = trace.get_tracer(__name__)
+        with tracer.start_as_current_span("save_batch_to_mongodb") as span:
+            correlation_id = messages[0].get("correlation_id") or str(uuid.uuid4())
+            batch_size = len(messages)
+            span.set_attribute("db.system", "mongodb")
+            span.set_attribute("db.operation", "insert_many")
+            span.set_attribute("batch.size", batch_size)
 
-        try:
-            successful_saves = await self.repository.save_many(messages)
-            log.info(
-                "Batch processed successfully",
-                successful=successful_saves,
-                failed=len(messages) - successful_saves,
-            )
-            return True
-        except ServiceError as e:
-            log.error("Repository error during batch save", error=str(e))
-            return False
-        except Exception as e:
-            log.error("Batch save failed unexpectedly", error=str(e), exc_info=True)
-            return False
+            log = self.logger.bind(correlation_id=correlation_id, batch_size=batch_size)
+
+            try:
+                successful_saves = await self.repository.save_many(messages)
+                log.info(
+                    "Batch processed successfully",
+                    successful=successful_saves,
+                    failed=len(messages) - successful_saves,
+                )
+                return True
+            except ServiceError as e:
+                log.error("Repository error during batch save", error=str(e))
+                return False
+            except Exception as e:
+                log.error("Batch save failed unexpectedly", error=str(e), exc_info=True)
+                return False
 
     async def process_message(self, message_data: str):
         """Process a single message from the queue."""
         try:
             message = json.loads(message_data)
-            structlog.contextvars.clear_contextvars()
-            structlog.contextvars.bind_contextvars(
-                message_id=message.get("id"),
-                correlation_id=message.get("correlation_id", str(uuid.uuid4())),
-            )
-            log = structlog.get_logger()
-            log.info("Processing message from queue")
 
-            if "retry_count" not in message:
-                message["retry_count"] = 0
-            if "first_attempt_time" not in message:
-                message["first_attempt_time"] = time.time()
+            trace_context = message.get("trace_context", {})
+            ctx = extract(trace_context)
+            tracer = trace.get_tracer(__name__)
 
-            self.processing_batch.append(message)
-            if len(self.processing_batch) >= settings.batch_size:
-                async with self.batch_lock:
-                    # Re-check condition in case another task already sent the batch
-                    if self.processing_batch:
-                        self.logger.info("Sending batch due to size limit")
-                        await self.send_current_batch()
+            with tracer.start_as_current_span(
+                "process_message_from_queue", context=ctx
+            ) as span:
+                span.set_attribute("messaging.system", "redis")
+                span.set_attribute("messaging.source", self.queue_name)
+                span.set_attribute("messaging.message_id", message.get("id"))
+
+                structlog.contextvars.clear_contextvars()
+                structlog.contextvars.bind_contextvars(
+                    message_id=message.get("id"),
+                    correlation_id=message.get("correlation_id", str(uuid.uuid4())),
+                )
+                log = structlog.get_logger()
+                log.info("Processing message from queue")
+
+                if "retry_count" not in message:
+                    message["retry_count"] = 0
+                if "first_attempt_time" not in message:
+                    message["first_attempt_time"] = time.time()
+
+                self.processing_batch.append(message)
+                if len(self.processing_batch) >= settings.batch_size:
+                    async with self.batch_lock:
+                        if self.processing_batch:
+                            self.logger.info("Sending batch due to size limit")
+                            await self.send_current_batch()
 
         except json.JSONDecodeError:
             self.logger.error("Failed to parse message JSON", message_data=message_data)
@@ -201,10 +223,8 @@ class MessageWorker:
                         self.processing_batch
                         and time_since_last_batch >= settings.batch_timeout_seconds
                     ):
-                        async with (
-                            self.batch_lock
-                        ):  # Acquire lock for timeout-based sending
-                            if self.processing_batch:  # Re-check inside lock
+                        async with self.batch_lock:
+                            if self.processing_batch:
                                 self.logger.info("Sending batch due to timeout")
                                 await self.send_current_batch()
                 except asyncio.CancelledError:
@@ -231,6 +251,7 @@ class MessageWorker:
 async def main():
     """Main entry point."""
     setup_structlog(json_logs=settings.json_logs)
+    setup_tracing(service_name=os.getenv("SERVICE_NAME", "worker"))
     logger = structlog.get_logger(__name__)
     worker = MessageWorker(logger=logger)
 

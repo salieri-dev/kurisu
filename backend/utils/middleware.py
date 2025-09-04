@@ -9,7 +9,14 @@ from fastapi.responses import JSONResponse
 
 logger = structlog.get_logger(__name__)
 
-EXCLUDED_ENDPOINTS = ["/health", "/docs", "/redoc", "/openapi.json", "/favicon.ico"]
+EXCLUDED_ENDPOINTS = [
+    "/health",
+    "/docs",
+    "/redoc",
+    "/openapi.json",
+    "/favicon.ico",
+    "/metrics",
+]
 
 
 async def structured_logging_middleware(request: Request, call_next):

@@ -17,6 +17,10 @@ pydantic-settings = "^2.1.0"
 
 # This adds the crucial local library dependency
 kurisu-core = {path = "../kurisu_core", develop = true}
+opentelemetry-api = "^1.36.0"
+opentelemetry-sdk = "^1.36.0"
+opentelemetry-exporter-otlp-proto-grpc = "^1.36.0"
+opentelemetry-instrumentation-httpx = "^0.57b0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
