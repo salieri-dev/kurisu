@@ -25,7 +25,6 @@ services:
       - JSON_LOGS=true
     labels:
       - "logging=promtail"
-      - "service_name=backend"
     depends_on:
       - mongodb
       - otel-collector
@@ -59,7 +58,6 @@ services:
       - JSON_LOGS=true
     labels:
       - "logging=promtail"
-      - "service_name=bot"
     depends_on:
       backend:
         condition: service_healthy
@@ -89,7 +87,6 @@ services:
       - JSON_LOGS=true
     labels:
       - "logging=promtail"
-      - "service_name=worker"
     depends_on:
       - backend
       - redis

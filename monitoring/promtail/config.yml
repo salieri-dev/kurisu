@@ -20,9 +20,7 @@ scrape_configs:
       - source_labels: ['__meta_docker_container_name']
         regex: '/(.*)'
         target_label: 'container'
-      - source_labels: ['__meta_docker_container_label_service_name']
-        target_label: 'service'
-    
+      
     pipeline_stages:
       - regex:
           expression: '^(?P<log_content>{.*})$'
@@ -30,9 +28,11 @@ scrape_configs:
       - json:
           expressions:
             level: level
-            event: event
+            service: service
+            env: env
           source: log_content
 
       - labels:
           level:
-          event:
+          service:
+          env:
