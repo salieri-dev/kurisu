@@ -1,4 +1,3 @@
-# backend/plugins/neuro/threads/__init__.py
 """Plugin for generating imageboard-style threads using an LLM."""
 
 PLUGIN_METADATA = {

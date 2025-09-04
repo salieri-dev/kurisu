@@ -1,10 +1,9 @@
-
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import ANY, AsyncMock, MagicMock
 
 import pytest
+
 from backend.plugins.neuro.fanfic.models import LLMFanficResponse
 from backend.plugins.neuro.fanfic.service import FanficService
-from unittest.mock import ANY
 
 
 @pytest.fixture
@@ -12,15 +11,18 @@ def mock_llm_client() -> AsyncMock:
     """Provides a mock for the LLMClient."""
     return AsyncMock()
 
+
 @pytest.fixture
 def mock_fal_client() -> AsyncMock:
     """Provides a mock for the FalAIClient."""
     return AsyncMock()
 
+
 @pytest.fixture
 def mock_repository() -> AsyncMock:
     """Provides a mock for the FanficRepository."""
     return AsyncMock()
+
 
 @pytest.fixture
 def mock_config_service() -> AsyncMock:
@@ -62,7 +64,7 @@ async def test_generate_fanfic_happy_path(
     fake_user_id = 123
     fake_chat_id = 456
     fake_topic = "testing the service"
-    
+
     fake_llm_response = LLMFanficResponse(
         title="Test Fanfic Title",
         content="This is the story content.",
@@ -86,9 +88,7 @@ async def test_generate_fanfic_happy_path(
     assert result.image_url == fake_image_url
 
     mock_llm_client.structured_chat_completion.assert_awaited_once_with(
-        ANY,
-        "anthropic/claude-3.5-sonnet",
-        response_model=LLMFanficResponse
+        ANY, "anthropic/claude-3.5-sonnet", response_model=LLMFanficResponse
     )
 
     expected_payload = {
@@ -97,8 +97,7 @@ async def test_generate_fanfic_happy_path(
         "num_images": 1,
     }
     mock_fal_client.generate_image.assert_awaited_once_with(
-        "fal-ai/flux/dev",
-        expected_payload
+        "fal-ai/flux/dev", expected_payload
     )
 
     mock_repository.save_fanfic.assert_awaited_once()

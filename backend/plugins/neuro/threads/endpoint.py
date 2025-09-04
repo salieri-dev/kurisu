@@ -8,7 +8,7 @@ from .service import ThreadsService, get_threads_service
 
 router = APIRouter()
 
-# Module-level dependencies to avoid B008 linter errors
+
 SERVICE_DEPENDENCY = Depends(get_threads_service)
 HEADERS_DEPENDENCY = Depends(require_telegram_headers)
 

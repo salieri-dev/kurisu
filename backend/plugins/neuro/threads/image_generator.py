@@ -81,7 +81,7 @@ class BaseImageGenerator(ABC):
         if style == "dvach":
             weekday_ru = ["Пнд", "Втр", "Срд", "Чтв", "Птн", "Суб", "Вск"][dt.weekday()]
             return dt.strftime(f"%d/%m/%y ({weekday_ru}) %H:%M:%S")
-        # Default to 4chan style
+
         weekday_en = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dt.weekday()]
         return dt.strftime(f"%m/%d/%y({weekday_en})%H:%M:%S")
 

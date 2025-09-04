@@ -42,10 +42,8 @@ class AltGirlsService:
         and applying business logic (encoding, mapping).
         """
         try:
-            # Use the central asset service to get asset details
             assets = self.asset_service.get_random_assets(self.ASSET_CATEGORY, count)
         except NotFoundError as e:
-            # Re-raise to be handled by the global exception handler
             raise e
 
         images_data = []

@@ -24,7 +24,6 @@ async def message(client: Client, message):
             message_data = serialize_message(message)
             message_data["correlation_id"] = correlation_id
 
-            # Inject tracing context for the worker
             trace_context = {}
             inject(trace_context)
             message_data["trace_context"] = trace_context

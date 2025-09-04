@@ -1,4 +1,3 @@
-# backend/plugins/neuro/fanfic/endpoint.py
 from typing import Annotated
 
 from fastapi import APIRouter, Depends

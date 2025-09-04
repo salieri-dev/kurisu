@@ -1,4 +1,3 @@
-# backend/plugins/neuro/fanfic/repository.py
 from typing import Annotated
 
 from fastapi import Depends

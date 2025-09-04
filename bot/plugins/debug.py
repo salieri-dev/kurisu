@@ -1,4 +1,3 @@
-# bot/plugins/debug.py
 import shlex
 
 import structlog
@@ -27,7 +26,6 @@ async def debug_command(client: Client, message: Message):
     }
 
     try:
-        # Use shlex to safely parse arguments
         args = shlex.split(
             message.text.split(" ", 1)[1] if len(message.command) > 1 else ""
         )
@@ -49,13 +47,10 @@ async def debug_command(client: Client, message: Message):
         await message.reply_text(f"❌ Invalid argument format: {e}", quote=True)
         return
 
-    # Call the backend API
-    # The @handle_api_errors decorator will automatically handle non-200 responses
     await backend_client.post(
         "/utilities/debug/generate", message=message, json=payload
     )
 
-    # If the API call didn't raise an exception (i.e., status was 200)
     await message.reply_text(
         "✅ **Debug event generated successfully!**\n\n"
         "Check Grafana, Loki, and Jaeger to see the results.\n\n"

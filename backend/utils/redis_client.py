@@ -1,5 +1,3 @@
-# Path: backend/utils/redis_client.py
-
 import redis.asyncio as redis
 from config import settings
 
@@ -17,7 +15,7 @@ async def init_redis_client() -> redis.Redis:
         password=settings.redis_password,
         decode_responses=True,
     )
-    # Verify the connection is active.
+
     await _redis_client.ping()
     return _redis_client
 
@@ -30,7 +28,3 @@ async def close_redis_client():
     global _redis_client
     if _redis_client:
         await _redis_client.close()
-
-
-# The dependency function `get_redis_client` is now moved to `dependencies.py`
-# to keep all injectable dependencies in one place.

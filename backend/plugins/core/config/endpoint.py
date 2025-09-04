@@ -1,4 +1,3 @@
-# backend/plugins/core/config/endpoint.py
 import json
 from typing import Annotated
 
@@ -10,7 +9,6 @@ from .service import ConfigService, get_config_service
 router = APIRouter()
 
 
-# --- NEW ENDPOINT ---
 @router.get(
     "/resolve/{key:path}",
     response_model=dict,
@@ -37,9 +35,6 @@ async def resolve_config(
 
     value = await service.get_or_create(key, default_value, description)
     return {"key": key, "value": value}
-
-
-# --- END NEW ENDPOINT ---
 
 
 @router.post(

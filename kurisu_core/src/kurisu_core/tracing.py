@@ -7,13 +7,12 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 def setup_tracing(service_name: str):
     """Configures and registers a global tracer provider."""
-    # Check if tracing is already configured to avoid re-initialization
+
     if getattr(setup_tracing, "has_run", False):
         return
 
     resource = Resource(attributes={SERVICE_NAME: service_name})
 
-    # The OTLP endpoint is configured via the OTEL_EXPORTER_OTLP_ENDPOINT env var
     otlp_exporter = OTLPSpanExporter()
 
     span_processor = BatchSpanProcessor(otlp_exporter)

@@ -1,4 +1,3 @@
-# backend/plugins/utilities/debug/endpoint.py
 import asyncio
 import time
 
@@ -22,11 +21,11 @@ async def generate_test_event(request: DebugRequest):
     """
     This endpoint is a sandbox for testing the observability stack.
     """
-    # 1. Generate a custom trace with child spans if requested
+
     if request.create_spans:
         with tracer.start_as_current_span("complex_operation") as parent_span:
             parent_span.set_attribute("debug.mode", True)
-            time.sleep(0.05)  # Simulate initial work
+            time.sleep(0.05)
 
             with tracer.start_as_current_span("simulated_db_call") as child_span_1:
                 child_span_1.add_event("Connecting to database...")
@@ -39,11 +38,9 @@ async def generate_test_event(request: DebugRequest):
 
             parent_span.add_event("Complex operation finished.")
 
-    # 2. Add an artificial delay if requested
     if request.delay_seconds > 0:
         await asyncio.sleep(request.delay_seconds)
 
-    # 3. Generate the log message at the specified level
     log_payload = {"test_parameter": "some_value", "user_request": request.model_dump()}
     if request.log_level == "info":
         logger.info(request.log_message, **log_payload)
@@ -57,7 +54,6 @@ async def generate_test_event(request: DebugRequest):
         except ZeroDivisionError:
             logger.exception(request.log_message, **log_payload)
 
-    # 4. Return the appropriate HTTP status code
     if request.http_status_code != 200:
         raise HTTPException(
             status_code=request.http_status_code,

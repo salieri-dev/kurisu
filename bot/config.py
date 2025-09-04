@@ -1,4 +1,3 @@
-# bot/config.py
 from pydantic import BaseModel, Field, RedisDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,7 +17,7 @@ class Config(BaseSettings):
     backend_url: str = Field(default="http://localhost:8000", alias="BACKEND_URL")
     api_key: str | None = Field(default=None, alias="API_KEY")
 
-    owner_id: int = Field(..., alias="OWNER_ID")  # <-- ADD THIS LINE
+    owner_id: int = Field(..., alias="OWNER_ID")
 
     redis_url: RedisDsn = Field(..., alias="REDIS_URL")
     redis_password: str | None = Field(default=None, alias="REDIS_PASSWORD")

@@ -33,7 +33,7 @@ def test_make_choice_is_deterministic_with_mock(mock_random_choice):
     mock_random_choice.return_value = "paper"
     options = "rock;paper;scissors"
     response = random_service.make_choice(options)
-    assert response["choice"] == "paper"
+    assert response["choic e"] == "paper"
     mock_random_choice.assert_called_once_with(["rock", "paper", "scissors"])
 
 

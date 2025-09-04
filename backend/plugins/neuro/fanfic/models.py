@@ -3,7 +3,6 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
-# For API endpoint
 class FanficRequest(BaseModel):
     topic: str = Field(..., min_length=3, max_length=300)
 
@@ -14,7 +13,6 @@ class FanficResponse(BaseModel):
     image_url: str
 
 
-# For LLM structured output
 class LLMFanficResponse(BaseModel):
     title: str = Field(description="The title of the fanfiction in Russian.")
     content: str = Field(
@@ -25,7 +23,6 @@ class LLMFanficResponse(BaseModel):
     )
 
 
-# For Database
 class FanficDB(BaseModel):
     user_id: int
     chat_id: int
