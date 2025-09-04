@@ -29,21 +29,18 @@ def owner_only(func):
     @functools.wraps(func)
     async def wrapper(client: Client, message: Message, *args, **kwargs):
         if not message.from_user:
-            # Cannot identify user (e.g., anonymous admin, channel post)
             return
 
         if message.from_user.id == OWNER_ID:
-            # User is the owner, proceed with the command
             return await func(client, message, *args, **kwargs)
         else:
-            # User is not the owner, log and silently drop the request
             log.warning(
                 "Unauthorized access attempt to owner-only command",
                 user_id=message.from_user.id,
                 username=message.from_user.username or "N/A",
                 command_text=message.text,
             )
-            return  # Stop execution, send no reply
+            return
 
     return wrapper
 
@@ -195,7 +192,6 @@ def require_chat_config(
     def decorator(func):
         @functools.wraps(func)
         async def wrapper(client: Client, message: Message, *args, **kwargs):
-            # Fetch the config value using our universal utility
             current_value = await get_chat_config(message, key, default=False)
 
             if current_value == expected_value:

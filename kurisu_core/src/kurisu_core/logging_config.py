@@ -4,7 +4,23 @@ import os
 import sys
 
 import structlog
+from opentelemetry import trace
 from structlog.types import EventDict, Processor
+
+
+def add_opentelemetry_ids(_, __, event_dict: EventDict) -> EventDict:
+    """
+    Adds trace_id and span_id to the log record if a trace is active.
+    """
+    current_span = trace.get_current_span()
+    if current_span.get_span_context().is_valid:
+        event_dict["trace_id"] = trace.format_trace_id(
+            current_span.get_span_context().trace_id
+        )
+        event_dict["span_id"] = trace.format_span_id(
+            current_span.get_span_context().span_id
+        )
+    return event_dict
 
 
 def add_service_info(_, __, event_dict: EventDict) -> EventDict:
@@ -21,13 +37,11 @@ def drop_color_message_key(_, __, event_dict: EventDict) -> EventDict:
 def setup_structlog(json_logs: bool = False, log_level: str = "INFO"):
     """
     Configure structured logging for the entire application.
-    This setup intercepts logs from the standard `logging` library (used by Uvicorn, etc.)
-    and processes them through the structlog pipeline, ensuring a unified log format.
     """
-
     shared_processors: list[Processor] = [
         structlog.contextvars.merge_contextvars,
         add_service_info,
+        add_opentelemetry_ids,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
         structlog.stdlib.ExtraAdder(),

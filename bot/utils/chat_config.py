@@ -1,4 +1,3 @@
-# Path: bot/utils/chat_config.py
 
 from typing import Any
 
@@ -26,32 +25,26 @@ async def get_chat_config(message: Message, key: str, default: Any = None) -> An
     Returns:
         The configuration value, or the default if not found.
     """
-    # Settings don't apply in private chats; always return the safe default (or True if default is True)
     if message.chat.type == ChatType.PRIVATE:
         return default if default is not None else True
 
     cache_key = f"chat_config:{message.chat.id}:{key}"
 
-    # 1. Try to get from cache
     try:
         cached_value = await redis_client.get(cache_key)
         if cached_value is not None:
-            # Redis stores everything as strings, so '0' becomes False, '1' becomes True.
             return cached_value == "1" if isinstance(default, bool) else cached_value
     except Exception:
         log.warning("Redis check failed for chat config, falling back to API.", key=key)
 
-    # 2. Cache miss or failure, get from API
     try:
         response = await backend_client.get(
             f"/core/chat_config/{message.chat.id}/{key}", message=message
         )
-        # The API returns the value, or `null` if not set.
         api_value = response.get("param_value", default)
 
-        # 3. Cache the result for next time
         value_to_cache = "1" if api_value else "0"
-        await redis_client.set(cache_key, value_to_cache, ex=300)  # 5-minute cache
+        await redis_client.set(cache_key, value_to_cache, ex=300)
 
         return api_value
     except Exception:

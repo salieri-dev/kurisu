@@ -2,20 +2,26 @@ receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: 0.0.0.0:4317
       http:
+        endpoint: 0.0.0.0:4318
+
+extensions:
+  health_check:
 
 processors:
   batch:
 
 exporters:
   otlp:
-    endpoint: "jaeger:4317"
+    endpoint: "tempo:4317"
     tls:
       insecure: true
   debug:
     verbosity: detailed
 
 service:
+  extensions: [health_check]
   pipelines:
     traces:
       receivers: [otlp]

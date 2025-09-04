@@ -6,11 +6,13 @@ from typing import Any
 import httpx
 import structlog
 from config import credentials
+from opentelemetry import propagate, trace
 from pyrogram.types import Message
 
 from utils.exceptions import APIError
 
 log = structlog.get_logger(__name__)
+tracer = trace.get_tracer(__name__)
 
 
 class BackendClient:
@@ -42,6 +44,9 @@ class BackendClient:
             or f"{user.first_name or ''} {user.last_name or ''}".strip()
             or "Unknown",
         }
+
+        propagate.inject(headers)
+
         return headers
 
     async def request(
@@ -55,70 +60,85 @@ class BackendClient:
     ) -> dict[str, Any]:
         """
         Make a generic HTTP request to the backend API.
-
-        This method now centralizes request logic and error handling. It
-        catches HTTP errors and raises a custom `APIError` with details.
         """
         correlation_id = str(uuid.uuid4())
-        try:
-            headers = await self._prepare_headers(message, correlation_id)
 
-            response = await self._client.request(
-                method, path, params=params, json=json, headers=headers
-            )
-            response.raise_for_status()
-
-            response_correlation_id = response.headers.get(
-                "X-Correlation-ID", correlation_id
-            )
-            log.info(
-                "Backend request successful",
-                method=method,
-                path=path,
-                correlation_id=response_correlation_id,
-                status_code=response.status_code,
-            )
-            return response.json()
-
-        except httpx.HTTPStatusError as e:
-            response_correlation_id = e.response.headers.get(
-                "X-Correlation-ID", correlation_id
-            )
+        with tracer.start_as_current_span(
+            f"call_backend:{method}",
+            attributes={
+                "http.method": method,
+                "http.url": f"{self._client.base_url}{path}",
+            },
+        ) as span:
             try:
-                error_data = e.response.json()
-                detail = error_data.get("detail", "No detail provided by API.")
-            except Exception:
-                detail = (
-                    f"Failed to parse error response. Body: {e.response.text[:200]}"
+                headers = await self._prepare_headers(message, correlation_id)
+                span.set_attribute("correlation_id", correlation_id)
+
+                response = await self._client.request(
+                    method, path, params=params, json=json, headers=headers
                 )
 
-            log.warning(
-                "Backend API returned an error status",
-                method=method,
-                path=path,
-                correlation_id=response_correlation_id,
-                status_code=e.response.status_code,
-                detail=detail,
-            )
-            raise APIError(
-                detail=detail,
-                status_code=e.response.status_code,
-                correlation_id=response_correlation_id,
-            ) from e
+                span.set_attribute("http.status_code", response.status_code)
+                response.raise_for_status()
 
-        except httpx.RequestError as e:
-            log.error(
-                "Backend API request network error",
-                method=method,
-                path=path,
-                correlation_id=correlation_id,
-                error=str(e),
-            )
-            raise APIError(
-                detail=f"Network error communicating with the backend: {e.__class__.__name__}",
-                status_code=503,
-                correlation_id=correlation_id,
-            ) from e
+                response_correlation_id = response.headers.get(
+                    "X-Correlation-ID", correlation_id
+                )
+                log.info(
+                    "Backend request successful",
+                    method=method,
+                    path=path,
+                    correlation_id=response_correlation_id,
+                    status_code=response.status_code,
+                )
+                return response.json()
+
+            except httpx.HTTPStatusError as e:
+                span.set_attribute("http.status_code", e.response.status_code)
+                span.set_attribute("error", True)
+                span.record_exception(e)
+
+                response_correlation_id = e.response.headers.get(
+                    "X-Correlation-ID", correlation_id
+                )
+                try:
+                    error_data = e.response.json()
+                    detail = error_data.get("detail", "No detail provided by API.")
+                except Exception:
+                    detail = (
+                        f"Failed to parse error response. Body: {e.response.text[:200]}"
+                    )
+
+                log.warning(
+                    "Backend API returned an error status",
+                    method=method,
+                    path=path,
+                    correlation_id=response_correlation_id,
+                    status_code=e.response.status_code,
+                    detail=detail,
+                )
+                raise APIError(
+                    detail=detail,
+                    status_code=e.response.status_code,
+                    correlation_id=response_correlation_id,
+                ) from e
+
+            except httpx.RequestError as e:
+                span.set_attribute("error", True)
+                span.record_exception(e)
+
+                log.error(
+                    "Backend API request network error",
+                    method=method,
+                    path=path,
+                    correlation_id=correlation_id,
+                    error=str(e),
+                )
+                raise APIError(
+                    detail=f"Network error communicating with the backend: {e.__class__.__name__}",
+                    status_code=503,
+                    correlation_id=correlation_id,
+                ) from e
 
     async def get(
         self, path: str, *, message: Message, params: dict[str, Any] | None = None
