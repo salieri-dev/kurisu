@@ -25,7 +25,7 @@ def make_choice(
     options: str = Query(
         ...,
         description="Options separated by semicolons (e.g., 'option1;option2;option3')",
-        example="rock;paper;scissors",
+        examples="rock;paper;scissors",
     ),
 ):
     """
@@ -82,10 +82,10 @@ def magic_8ball():
 )
 def generate_random_number(
     min_value: int | None = Query(
-        None, description="Minimum value (default: 1)", ge=0, example=1
+        None, description="Minimum value (default: 1)", ge=0, examples=[1]
     ),
     max_value: int | None = Query(
-        None, description="Maximum value (default: 100)", ge=1, example=100
+        None, description="Maximum value (default: 100)", ge=1, examples=[100]
     ),
 ):
     """Generate a random number in a range."""

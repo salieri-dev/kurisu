@@ -1,15 +1,11 @@
 """Pydantic models for random plugin API responses."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ChoiceResponse(BaseModel):
-    """Response model for random choice endpoint."""
-
     choice: str
-
-    class Config:
-        json_schema_extra = {"example": {"choice": "option1"}}
+    model_config = {"json_schema_extra": {"examples": [{"choice": "option1"}]}}
 
 
 class DiceResponse(BaseModel):
@@ -17,8 +13,7 @@ class DiceResponse(BaseModel):
 
     result: int
 
-    class Config:
-        json_schema_extra = {"example": {"result": 4}}
+    model_config = ConfigDict(json_schema_extra={"examples": [{"result": 4}]})
 
 
 class CoinResponse(BaseModel):
@@ -26,8 +21,7 @@ class CoinResponse(BaseModel):
 
     result: str
 
-    class Config:
-        json_schema_extra = {"example": {"result": "Орёл"}}
+    model_config = ConfigDict(json_schema_extra={"examples": [{"result": "Орёл"}]})
 
 
 class EightBallResponse(BaseModel):
@@ -35,8 +29,7 @@ class EightBallResponse(BaseModel):
 
     prediction: str
 
-    class Config:
-        json_schema_extra = {"example": {"prediction": "Да"}}
+    model_config = ConfigDict(json_schema_extra={"examples": [{"prediction": "Да"}]})
 
 
 class NumberResponse(BaseModel):
@@ -44,5 +37,4 @@ class NumberResponse(BaseModel):
 
     result: int
 
-    class Config:
-        json_schema_extra = {"example": {"result": 42}}
+    model_config = ConfigDict(json_schema_extra={"examples": [{"result": 42}]})

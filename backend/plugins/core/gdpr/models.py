@@ -1,6 +1,6 @@
 """Pydantic models for GDPR operations."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class GDPRDeleteRequest(BaseModel):
@@ -8,8 +8,7 @@ class GDPRDeleteRequest(BaseModel):
 
     user_id: int
 
-    class Config:
-        json_schema_extra = {"example": {"user_id": 283902044}}
+    model_config = ConfigDict(json_schema_extra={"examples": [{"user_id": 283902044}]})
 
 
 class GDPRDeleteResponse(BaseModel):
@@ -19,7 +18,8 @@ class GDPRDeleteResponse(BaseModel):
     deleted_count: int
     error: str | None = None
 
-    class Config:
-        json_schema_extra = {
-            "example": {"success": True, "deleted_count": 42, "error": None}
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [{"success": True, "deleted_count": 42, "error": None}]
         }
+    )

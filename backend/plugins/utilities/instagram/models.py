@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 
 class InstagramMedia(BaseModel):
@@ -30,8 +30,8 @@ class InstagramMediaResponse(BaseModel):
     status: str = "success"
     media: InstagramMedia
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "status": "success",
                 "media": {
@@ -47,3 +47,4 @@ class InstagramMediaResponse(BaseModel):
                 },
             }
         }
+    )
