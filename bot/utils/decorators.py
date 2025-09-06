@@ -6,7 +6,6 @@ import structlog
 from config import credentials
 from pyrogram import Client
 from pyrogram.types import Message
-
 from utils.chat_config import get_chat_config
 
 from .config_client import get_config

@@ -8,7 +8,6 @@ import structlog
 from config import credentials
 from opentelemetry import propagate, trace
 from pyrogram.types import Message
-
 from utils.exceptions import APIError
 
 log = structlog.get_logger(__name__)
