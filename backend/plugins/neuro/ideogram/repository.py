@@ -18,14 +18,14 @@ class IdeogramRepository:
 
     async def save_generation(self, data: IdeogramDB) -> str:
         try:
-            result = await self._collection.insert_one(data.model_dump())
+            document_to_insert = data.model_dump(mode='json')
+            
+            result = await self._collection.insert_one(document_to_insert)
             logger.info("Saved Ideogram generation to database", user_id=data.user_id)
             return str(result.inserted_id)
         except PyMongoError as e:
             logger.error("Database error saving Ideogram generation", error=str(e))
-            raise ServiceError(
-                "Failed to save generation due to a database error."
-            ) from e
+            raise ServiceError("Failed to save generation due to a database error.") from e
 
 
 async def get_ideogram_collection(

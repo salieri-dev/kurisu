@@ -24,7 +24,7 @@ COPY backend/pyproject.toml backend/poetry.lock ./
 COPY kurisu_core ../kurisu_core/
 
 # Install Python dependencies into the system environment
-RUN poetry install --no-interaction --no-ansi --without dev --no-root
+RUN poetry install --no-interaction --no-ansi --only main --no-root
 
 # Copy the rest of the application code
 COPY backend/. .
