@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kurisu-core"
-version = "0.1.0"
+version = "1.0.0"
 description = "Shared core library for the Kurisu project (e.g., logging)."
 authors = ["salieri_dev <you@example.com>"]
 packages = [{include = "kurisu_core", from = "src"}]
