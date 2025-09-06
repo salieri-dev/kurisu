@@ -1,7 +1,8 @@
 """Backend API client for bot plugins."""
 
 import uuid
-from typing import Any, Optional
+from io import BytesIO
+from typing import Any, Dict, Optional, Tuple
 
 import httpx
 import structlog
@@ -22,7 +23,7 @@ class BackendClient:
         self._client = httpx.AsyncClient(
             base_url=base_url,
             headers={"X-API-Key": api_key} if api_key else {},
-            timeout=30.0,
+            timeout=180.0,  # Increased timeout for image processing
         )
 
     async def _prepare_headers(
@@ -65,7 +66,9 @@ class BackendClient:
         message: Optional[Message] = None,
         params: dict[str, Any] | None = None,
         json: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
+        data: Optional[Dict[str, Any]] = None,
+        files: Optional[Dict[str, Any]] = None,
+    ) -> httpx.Response:
         """
         Make a generic HTTP request to the backend API.
         Handles both user-initiated and system-level requests.
@@ -85,7 +88,13 @@ class BackendClient:
                 span.set_attribute("correlation_id", correlation_id)
 
                 response = await self._client.request(
-                    method, path, params=params, json=json, headers=headers
+                    method,
+                    path,
+                    params=params,
+                    json=json,
+                    data=data,
+                    files=files,
+                    headers=headers,
                 )
 
                 span.set_attribute("http.status_code", response.status_code)
@@ -98,13 +107,17 @@ class BackendClient:
                     correlation_id=correlation_id,
                     status_code=response.status_code,
                 )
-                return response.json()
+                return response
 
             except httpx.HTTPStatusError as e:
                 span.set_attribute("http.status_code", e.response.status_code)
                 span.set_attribute("error", True)
                 span.record_exception(e)
-                detail = e.response.json().get("detail", "API Error")
+                try:
+                    detail = e.response.json().get("detail", "API Error")
+                except Exception:
+                    detail = e.response.text or "API Error"
+
                 log.warning(
                     "Backend API returned an error status",
                     method=method,
@@ -143,7 +156,8 @@ class BackendClient:
         params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Make a GET request to the backend API."""
-        return await self.request("GET", path, message=message, params=params)
+        response = await self.request("GET", path, message=message, params=params)
+        return response.json()
 
     async def post(
         self,
@@ -153,7 +167,26 @@ class BackendClient:
         json: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Make a POST request to the backend API."""
-        return await self.request("POST", path, message=message, json=json)
+        response = await self.request("POST", path, message=message, json=json)
+        return response.json()
+
+    async def post_media(
+        self,
+        path: str,
+        *,
+        message: Optional[Message] = None,
+        file_bytes: BytesIO,
+        file_name: str,
+        file_mime: str,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[bytes, str]:
+        """Make a POST request with a file and return the content and content-type."""
+        files = {"image": (file_name, file_bytes, file_mime)}
+        response = await self.request(
+            "POST", path, message=message, data=data, files=files
+        )
+        content_type = response.headers.get("content-type", "application/octet-stream")
+        return response.content, content_type
 
     async def close(self):
         """Close the HTTP client."""
