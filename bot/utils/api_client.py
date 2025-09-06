@@ -1,7 +1,7 @@
 """Backend API client for bot plugins."""
 
 import uuid
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 import structlog
@@ -26,26 +26,35 @@ class BackendClient:
         )
 
     async def _prepare_headers(
-        self, message: Message, correlation_id: str | None = None
+        self, message: Optional[Message], correlation_id: str
     ) -> dict[str, str]:
-        """Prepare headers for API request from a Pyrogram message object."""
-        if message.chat is None:
-            raise ValueError("Message must have a valid chat")
-        user = message.from_user
-        if user is None:
-            raise ValueError("Message must have a valid user")
+        """
+        Prepare headers for API request.
+        Derives context from a Pyrogram message if provided, otherwise uses system context.
+        """
+        headers = {"X-Correlation-ID": correlation_id}
 
-        headers = {
-            "X-Correlation-ID": correlation_id or str(uuid.uuid4()),
-            "X-Chat-ID": str(message.chat.id),
-            "X-User-ID": str(user.id),
-            "X-User-Name": user.username
-            or f"{user.first_name or ''} {user.last_name or ''}".strip()
-            or "Unknown",
-        }
+        if message and message.chat and message.from_user:
+            user = message.from_user
+            headers.update(
+                {
+                    "X-Chat-ID": str(message.chat.id),
+                    "X-User-ID": str(user.id),
+                    "X-User-Name": user.username
+                    or f"{user.first_name or ''} {user.last_name or ''}".strip()
+                    or "Unknown",
+                }
+            )
+        else:
+            headers.update(
+                {
+                    "X-Chat-ID": "system",
+                    "X-User-ID": "system",
+                    "X-User-Name": "KurisuBotSystem",
+                }
+            )
 
         propagate.inject(headers)
-
         return headers
 
     async def request(
@@ -53,12 +62,13 @@ class BackendClient:
         method: str,
         path: str,
         *,
-        message: Message,
+        message: Optional[Message] = None,
         params: dict[str, Any] | None = None,
         json: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Make a generic HTTP request to the backend API.
+        Handles both user-initiated and system-level requests.
         """
         correlation_id = str(uuid.uuid4())
 
@@ -67,6 +77,7 @@ class BackendClient:
             attributes={
                 "http.method": method,
                 "http.url": f"{self._client.base_url}{path}",
+                "request.type": "user" if message else "system",
             },
         ) as span:
             try:
@@ -80,14 +91,11 @@ class BackendClient:
                 span.set_attribute("http.status_code", response.status_code)
                 response.raise_for_status()
 
-                response_correlation_id = response.headers.get(
-                    "X-Correlation-ID", correlation_id
-                )
                 log.info(
                     "Backend request successful",
                     method=method,
                     path=path,
-                    correlation_id=response_correlation_id,
+                    correlation_id=correlation_id,
                     status_code=response.status_code,
                 )
                 return response.json()
@@ -96,36 +104,24 @@ class BackendClient:
                 span.set_attribute("http.status_code", e.response.status_code)
                 span.set_attribute("error", True)
                 span.record_exception(e)
-
-                response_correlation_id = e.response.headers.get(
-                    "X-Correlation-ID", correlation_id
-                )
-                try:
-                    error_data = e.response.json()
-                    detail = error_data.get("detail", "No detail provided by API.")
-                except Exception:
-                    detail = (
-                        f"Failed to parse error response. Body: {e.response.text[:200]}"
-                    )
-
+                detail = e.response.json().get("detail", "API Error")
                 log.warning(
                     "Backend API returned an error status",
                     method=method,
                     path=path,
-                    correlation_id=response_correlation_id,
+                    correlation_id=correlation_id,
                     status_code=e.response.status_code,
                     detail=detail,
                 )
                 raise APIError(
                     detail=detail,
                     status_code=e.response.status_code,
-                    correlation_id=response_correlation_id,
+                    correlation_id=correlation_id,
                 ) from e
 
             except httpx.RequestError as e:
                 span.set_attribute("error", True)
                 span.record_exception(e)
-
                 log.error(
                     "Backend API request network error",
                     method=method,
@@ -140,13 +136,21 @@ class BackendClient:
                 ) from e
 
     async def get(
-        self, path: str, *, message: Message, params: dict[str, Any] | None = None
+        self,
+        path: str,
+        *,
+        message: Optional[Message] = None,
+        params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Make a GET request to the backend API."""
         return await self.request("GET", path, message=message, params=params)
 
     async def post(
-        self, path: str, *, message: Message, json: dict[str, Any] | None = None
+        self,
+        path: str,
+        *,
+        message: Optional[Message] = None,
+        json: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Make a POST request to the backend API."""
         return await self.request("POST", path, message=message, json=json)

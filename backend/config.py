@@ -35,6 +35,7 @@ class AppConfig(BaseSettings):
     redis_url: RedisDsn = Field(..., alias="REDIS_URL")
     redis_password: str | None = Field(default=None, alias="REDIS_PASSWORD")
 
+    owner_id: int = Field(..., alias="OWNER_ID")
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
