@@ -4,12 +4,12 @@ version = "0.1.0"
 description = "Shared core library for the Kurisu project (e.g., logging)."
 authors = ["salieri_dev <you@example.com>"]
 packages = [{include = "kurisu_core", from = "src"}]
-readme = "README.md"
+# Remove this line: readme = "README.md"
 
 [tool.poetry.urls]
-Homepage = "https://github.com/salieri-dev/kurisu"
-Repository = "https://github.com/salieri-dev/kurisu"
-Issues = "https://github.com/salieri-dev/kurisu/issues"
+Homepage = "https://github.com/yourusername/kurisu"
+Repository = "https://github.com/yourusername/kurisu"
+Issues = "https://github.com/yourusername/kurisu/issues"
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -29,7 +29,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.semantic_release]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 version_variables = ["src/kurisu_core/__init__.py:__version__"]
-build_command = "poetry build"
+build_command = ""  # Remove build command since Poetry isn't available in container
 dist_path = "dist/"
 upload_to_pypi = false
 upload_to_repository = false
@@ -42,7 +42,6 @@ match = "main"
 prerelease = false
 
 [tool.semantic_release.changelog]
-template_dir = "templates"
 changelog_file = "CHANGELOG.md"
 exclude_commit_patterns = [
     "^chore\\(release\\):",

@@ -3,7 +3,6 @@ name = "kurisu-backend"
 version = "0.1.0"
 description = "The backend service for the Kurisu project."
 authors = ["Your Name <you@example.com>"]
-readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
