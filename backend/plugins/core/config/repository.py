@@ -56,3 +56,13 @@ class ConfigRepository:
             raise ServiceError(
                 f"Database error while setting config for key '{key}'"
             ) from e
+
+    async def get_all_configs(self) -> list[ConfigItem]:
+        """Retrieves all configuration items from the database."""
+        try:
+            cursor = self._collection.find({}).sort("key", 1)
+            docs = await cursor.to_list(length=None)
+            return [ConfigItem(**doc) for doc in docs]
+        except PyMongoError as e:
+            logger.error("DB error getting all configs", error=str(e))
+            raise ServiceError("Database error while getting all configs") from e

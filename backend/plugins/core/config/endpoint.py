@@ -1,5 +1,5 @@
 import json
-from typing import Annotated
+from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -66,3 +66,28 @@ async def get_config(
             status_code=404, detail=f"Configuration key '{key}' not found"
         )
     return config_item
+
+@router.get(
+    "",
+    response_model=List[ConfigGetResponse],
+    summary="Get all configuration items",
+    description="Retrieves a list of all configuration items from the database. Intended for dashboard use.",
+)
+async def get_all_configs(
+    service: Annotated[ConfigService, Depends(get_config_service)],
+):
+    return await service.get_all_configs()
+
+
+@router.delete(
+    "/cache/{key:path}",
+    status_code=204,
+    summary="Clear cache for a configuration key",
+    description="Removes a specific configuration key from the Redis cache, forcing a reload from the database on the next request.",
+)
+async def clear_config_cache(
+    key: str,
+    service: Annotated[ConfigService, Depends(get_config_service)],
+):
+    await service.clear_cache_for_key(key)
+    return None

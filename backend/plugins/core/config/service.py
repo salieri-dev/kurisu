@@ -114,6 +114,26 @@ class ConfigService:
         return ConfigGetResponse.model_validate(item) if item else None
 
 
+    async def get_all_configs(self) -> list[ConfigGetResponse]:
+        """
+        Retrieves all configuration items directly from the database, bypassing cache.
+        This is intended for admin/dashboard use.
+        """
+        items = await self.repository.get_all_configs()
+        return [ConfigGetResponse.model_validate(item.model_dump()) for item in items]
+
+    async def clear_cache_for_key(self, key: str) -> bool:
+        """Invalidates the Redis cache for a specific configuration key."""
+        cache_key = f"{self.CACHE_PREFIX}{key}"
+        try:
+            deleted_count = await self.redis.delete(cache_key)
+            if deleted_count > 0:
+                logger.info("Config cache explicitly invalidated", key=key)
+            return deleted_count > 0
+        except Exception as e:
+            logger.error("Redis error on explicit DELETE", key=key, error=str(e))
+            return False
+
 async def get_config_collection(
     database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
 ) -> AsyncIOMotorCollection:

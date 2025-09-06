@@ -40,7 +40,9 @@ class IdeogramService:
             "Default negative prompt for Ideogram.",
         )
         rendering_speed_str = await self.config.get_or_create(
-            "neuro/ideogram.rendering_speed", "TURBO", "Rendering speed: TURBO, BALANCED, or QUALITY."
+            "neuro/ideogram.rendering_speed",
+            "TURBO",
+            "Rendering speed: TURBO, BALANCED, or QUALITY.",
         )
         rendering_speed = RenderingSpeed(rendering_speed_str.upper())
 
@@ -50,11 +52,11 @@ class IdeogramService:
             prompt=prompt,
             negative_prompt=final_negative_prompt,
             rendering_speed=rendering_speed,
-            num_images=4
+            num_images=4,
         )
 
         result = await self.fal.generate_image(model_name, payload)
-        
+
         image_urls = [img.url for img in result.images]
         seed = result.seed
 

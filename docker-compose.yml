@@ -237,7 +237,33 @@ services:
     networks:
       - app-network
 
-
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    volumes:
+      - ./dashboard:/opt/kurisu/dashboard
+      - ./kurisu_core:/opt/kurisu/kurisu_core
+    ports:
+      - "8001:8001" # Or any other port you prefer
+    restart: unless-stopped
+    networks:
+      - app-network
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - SERVICE_NAME=dashboard
+      - OTEL_SERVICE_NAME=dashboard # Optional: if you want tracing
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - BACKEND_URL=http://backend:8000
+      - JSON_LOGS=true
+    labels:
+      - "logging=promtail"
+    depends_on:
+      - backend
+      
 networks:
   app-network:
     driver: bridge

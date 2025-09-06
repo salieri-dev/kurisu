@@ -46,37 +46,38 @@ def owner_only(func):
 
 def handle_api_errors(func):
     """
-    Decorator to catch and handle APIError exceptions from the backend client.
-    It formats a user-friendly error message, including a correlation ID.
+    Decorator to catch and handle APIError exceptions.
+    It formats a user-friendly error message and will EDIT the bot's last "wait"
+    message if available, otherwise it will send a new reply.
     """
-
     @functools.wraps(func)
     async def wrapper(client: Client, message: Message, *args, **kwargs):
         try:
             return await func(client, message, *args, **kwargs)
         except APIError as e:
-            log.error(
-                "APIError caught by handler", func_name=func.__name__, error=str(e)
-            )
+            log.error("APIError caught by handler", func_name=func.__name__, error=str(e))
 
             user_message = "❌ **Произошла неожиданная ошибка с сервером**"
             if e.correlation_id:
                 user_message += f"\n\nID ошибки для разработчика @not_salieri: ||`{e.correlation_id}`||"
 
-            await message.reply_text(user_message, quote=True)
+            wait_msg = getattr(message, "wait_msg", None)
+
+            if wait_msg:
+                await wait_msg.edit_text(user_message)
+            else:
+                await message.reply_text(user_message, quote=True)
             return
         except Exception as e:
-            log.exception(
-                "Unhandled exception in command handler",
-                func_name=func.__name__,
-                error=str(e),
-            )
-            await message.reply_text(
-                "🔧 Произошла непредвиденная внутренняя ошибка. Разработчики уже уведомлены.",
-                quote=True,
-            )
+            log.exception("Unhandled exception in command handler", func_name=func.__name__, error=str(e))
+            
+            error_message = "🔧 Произошла непредвиденная внутренняя ошибка. Разработчики уже уведомлены."
+            wait_msg = getattr(message, "wait_msg", None)
+            if wait_msg:
+                await wait_msg.edit_text(error_message)
+            else:
+                await message.reply_text(error_message, quote=True)
             return
-
     return wrapper
 
 
@@ -180,17 +181,15 @@ def require_chat_config(
     error_message: str = "❌ Эта команда отключена в этом чате.",
 ):
     """
-    A generic decorator factory to guard commands based on a dynamic chat configuration.
-
-    Args:
-        key: The configuration key to check (e.g., 'nsfw_enabled').
-        expected_value: The command will only run if the config value matches this.
-        error_message: The message to send to the user if the check fails.
+    A generic decorator to guard commands based on chat configuration.
+    This check is SKIPPED in private messages.
     """
-
     def decorator(func):
         @functools.wraps(func)
         async def wrapper(client: Client, message: Message, *args, **kwargs):
+            if message.chat.type == ChatType.PRIVATE:
+                return await func(client, message, *args, **kwargs)
+
             current_value = await get_chat_config(message, key, default=False)
 
             if current_value == expected_value:
@@ -201,14 +200,10 @@ def require_chat_config(
                     func_name=func.__name__,
                     chat_id=message.chat.id,
                     required_key=key,
-                    required_value=expected_value,
-                    current_value=current_value,
                 )
                 await message.reply_text(error_message, quote=True)
                 return
-
         return wrapper
-
     return decorator
 
 

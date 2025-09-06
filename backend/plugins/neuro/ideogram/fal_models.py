@@ -23,6 +23,7 @@ class ImageSizePreset(str, Enum):
 
 class IdeogramV3Input(BaseModel):
     """Payload for submitting a job to fal-ai/ideogram/v3."""
+
     prompt: str
     rendering_speed: RenderingSpeed = RenderingSpeed.BALANCED
     num_images: int = Field(default=4, ge=1, le=8)

@@ -3,6 +3,7 @@ from pyrogram import Client, filters
 from pyrogram.types import InputMediaPhoto, Message
 from utils.api_client import backend_client
 from utils.decorators import handle_api_errors, nsfw_guard, rate_limit
+from utils.exceptions import APIError
 from utils.help_registry import command_handler
 
 log = structlog.get_logger(__name__)
@@ -21,7 +22,6 @@ log = structlog.get_logger(__name__)
     default_limit=2,
     key="user",
 )
-@nsfw_guard
 @handle_api_errors
 async def ideogram_command(client: Client, message: Message):
     """Handles the /ideogram command by calling the backend service."""
@@ -34,6 +34,7 @@ async def ideogram_command(client: Client, message: Message):
     prompt = message.text.split(maxsplit=1)[1]
 
     wait_msg = await message.reply_text("🎨 Генерирую изображения...", quote=True)
+    message.wait_msg = wait_msg
 
     response = await backend_client.post(
         "/neuro/ideogram/generate", message=message, json={"prompt": prompt}
