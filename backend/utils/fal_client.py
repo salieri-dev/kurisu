@@ -1,4 +1,3 @@
-# --- MODIFIED ---
 
 import asyncio
 import httpx
@@ -49,7 +48,7 @@ class FalAIClient:
             request_id = status_data.request_id
 
             status_url = f"{self._base_url}/{base_model_id}/requests/{request_id}/status"
-            result_url = f"{self._base_url}/{base_model_id}/requests/{request_id}" # Define the result URL
+            result_url = f"{self._base_url}/{base_model_id}/requests/{request_id}"
 
             for attempt in range(45):
                 await asyncio.sleep(2)
@@ -67,7 +66,6 @@ class FalAIClient:
                     result_data = result_response.json()
                     
                     try:
-                        # Validate the data from the result_url against the final output model
                         return FalImageGenerationOutput.model_validate(result_data)
                     except ValidationError as e:
                         log.error("Failed to validate final output from Fal.run", error=str(e), data=result_data)
