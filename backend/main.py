@@ -11,6 +11,7 @@ from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from plugins import init_plugins
 from prometheus_fastapi_instrumentator import Instrumentator
 from pymongo.errors import ConnectionFailure
+from utils.database_setup import ensure_indexes
 from utils.exceptions import ServiceError
 from utils.fal_client import FalAIClient
 from utils.llm_client import LLMClient
@@ -43,6 +44,9 @@ async def lifespan(app: FastAPI):
         app.state.mongo_client = AsyncIOMotorClient(str(settings.mongodb_url))
         await app.state.mongo_client.admin.command("ping")
         logger.info("Successfully connected to MongoDB.")
+
+        db = app.state.mongo_client[settings.mongodb_database]
+        await ensure_indexes(db)
     except ConnectionFailure as e:
         logger.fatal("Failed to connect to MongoDB on startup.", error=str(e))
         raise
