@@ -65,7 +65,8 @@ allowed_tags = [
 minor_tags = ["feat"]
 patch_tags = ["fix", "perf"]
 default_bump = false
-
+# Support for emoji-prefixed commits
+pattern = "^.*?(?P<type>feat|fix|docs|style|refactor|perf|test|build|ci|chore)(?:\\((?P<scope>[^)]+)\\))?(?P<breaking>!)?:\\s*(?P<subject>.*)$"
 [tool.semantic_release.commit_author]
 env = "GIT_COMMIT_AUTHOR"
 default = "github-actions <actions@users.noreply.github.com>"
