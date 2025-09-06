@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kurisu-worker"
-version = "0.1.0"
+version = "1.0.0"
 description = "Background task worker for the Kurisu project."
 authors = ["Your Name <you@example.com>"]
 package-mode = false
