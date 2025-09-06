@@ -54,5 +54,19 @@ async def proxy_update_config(request: Request):
         logger.error("Network error updating config", error=str(e))
         raise HTTPException(status_code=502, detail="Bad Gateway: Cannot connect to backend service.")
 
+@app.delete("/api/configs/cache/{key:path}")
+async def proxy_clear_cache(key: str):
+    """Proxies the request to clear the Redis cache for a specific key."""
+    try:
+        async with await get_backend_client() as client:
+            response = await client.delete(f"/core/config/cache/{key}")
+            response.raise_for_status()
+            return {"message": f"Cache for key '{key}' cleared successfully."}
+    except httpx.HTTPStatusError as e:
+        logger.error("Backend error clearing cache", key=key, detail=e.response.text)
+        raise HTTPException(status_code=e.response.status_code, detail=e.response.json())
+    except httpx.RequestError as e:
+        logger.error("Network error clearing cache", key=key, error=str(e))
+        raise HTTPException(status_code=502, detail="Bad Gateway: Cannot connect to backend service.")
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

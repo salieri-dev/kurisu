@@ -7,12 +7,12 @@
         error: null,
     };
 
-    // --- API Communication ---
     const api = {
         getConfigs: async () => {
             const response = await fetch("/api/configs");
             if (!response.ok) {
-                throw new Error(`Failed to fetch configs: ${response.statusText}`);
+                const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+                throw new Error(`Failed to fetch configs: ${errorData.detail || response.statusText}`);
             }
             return await response.json();
         },
@@ -21,7 +21,7 @@
             try {
                 parsedValue = JSON.parse(value);
             } catch (e) {
-                parsedValue = value; // Keep as string if not valid JSON
+                parsedValue = value;
             }
 
             const response = await fetch("/api/configs", {
@@ -31,21 +31,30 @@
             });
 
             if (!response.ok) {
-                throw new Error(`Failed to update config: ${response.statusText}`);
+                const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+                throw new Error(`Failed to update config: ${errorData.detail || response.statusText}`);
+            }
+            return await response.json();
+        },
+        clearCache: async (key) => {
+            const response = await fetch(`/api/configs/cache/${encodeURIComponent(key)}`, {
+                method: "DELETE",
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+                throw new Error(`Failed to clear cache: ${errorData.detail || response.statusText}`);
             }
             return await response.json();
         },
     };
 
-    // --- HTML Rendering ---
     const render = () => {
-        appRoot.innerHTML = ''; // Clear previous content
+        appRoot.innerHTML = '';
 
         if (state.error) {
             appRoot.innerHTML = `<div class="error-message"><strong>Error:</strong> ${state.error}</div>`;
         }
         
-        // Render "Create New" form
         const createForm = document.createElement('div');
         createForm.innerHTML = `
             <div class="card">
@@ -70,13 +79,12 @@
         `;
         appRoot.appendChild(createForm);
 
-        // Render existing configs
         const configsHeader = document.createElement('h2');
         configsHeader.textContent = `Existing Configurations (${state.configs.length})`;
         appRoot.appendChild(configsHeader);
 
         if (state.configs.length === 0 && !state.error) {
-            appRoot.innerHTML += `<p>No configurations found.</p>`;
+            appRoot.insertAdjacentHTML('beforeend', `<p>No configurations found.</p>`);
         } else {
             state.configs.forEach(config => {
                 const configCard = document.createElement('div');
@@ -100,7 +108,10 @@
                         </div>
                         <div class="form-footer">
                             <small>Last Updated: ${updatedTime}</small>
-                            <button type="submit">Save Changes</button>
+                            <div>
+                                <button type="button" class="button-secondary clear-cache-btn" data-key="${config.key}">Clear Cache</button>
+                                <button type="submit">Save Changes</button>
+                            </div>
                         </div>
                     </form>
                 `;
@@ -109,7 +120,6 @@
         }
     };
 
-    // --- Event Handling ---
     const handleFormSubmit = async (event) => {
         event.preventDefault();
         const form = event.target;
@@ -124,7 +134,6 @@
 
         try {
             await api.updateConfig(key, value, description);
-            // On success, refresh all data to ensure consistency
             await init(); 
         } catch (e) {
             alert(`Error saving config: ${e.message}`);
@@ -133,9 +142,48 @@
         }
     };
 
-    appRoot.addEventListener('submit', handleFormSubmit);
+    const handleCacheClear = async (event) => {
+        if (!event.target.classList.contains('clear-cache-btn')) {
+            return;
+        }
 
-    // --- Initialization ---
+        const button = event.target;
+        const key = button.dataset.key;
+        
+        if (!key || !confirm(`Are you sure you want to clear the cache for "${key}"?`)) {
+            return;
+        }
+
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Clearing...';
+
+        try {
+            await api.clearCache(key);
+            button.textContent = 'Cleared!';
+            setTimeout(() => {
+                button.disabled = false;
+                button.textContent = originalText;
+            }, 2000);
+        } catch (e) {
+            alert(`Error clearing cache: ${e.message}`);
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    };
+
+    appRoot.addEventListener('submit', (e) => {
+        if (e.target.tagName === 'FORM') {
+            handleFormSubmit(e);
+        }
+    });
+
+    appRoot.addEventListener('click', (e) => {
+        if (e.target.classList.contains('clear-cache-btn')) {
+            handleCacheClear(e);
+        }
+    });
+
     const init = async () => {
         try {
             state.error = null;
