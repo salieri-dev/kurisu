@@ -6,6 +6,7 @@ import structlog
 from config import credentials
 from pyrogram import Client
 from pyrogram.types import Message
+from pyrogram.enums import ChatType
 from utils.chat_config import get_chat_config
 
 from .config_client import get_config
@@ -50,12 +51,15 @@ def handle_api_errors(func):
     It formats a user-friendly error message and will EDIT the bot's last "wait"
     message if available, otherwise it will send a new reply.
     """
+
     @functools.wraps(func)
     async def wrapper(client: Client, message: Message, *args, **kwargs):
         try:
             return await func(client, message, *args, **kwargs)
         except APIError as e:
-            log.error("APIError caught by handler", func_name=func.__name__, error=str(e))
+            log.error(
+                "APIError caught by handler", func_name=func.__name__, error=str(e)
+            )
 
             user_message = "❌ **Произошла неожиданная ошибка с сервером**"
             if e.correlation_id:
@@ -69,8 +73,12 @@ def handle_api_errors(func):
                 await message.reply_text(user_message, quote=True)
             return
         except Exception as e:
-            log.exception("Unhandled exception in command handler", func_name=func.__name__, error=str(e))
-            
+            log.exception(
+                "Unhandled exception in command handler",
+                func_name=func.__name__,
+                error=str(e),
+            )
+
             error_message = "🔧 Произошла непредвиденная внутренняя ошибка. Разработчики уже уведомлены."
             wait_msg = getattr(message, "wait_msg", None)
             if wait_msg:
@@ -78,6 +86,7 @@ def handle_api_errors(func):
             else:
                 await message.reply_text(error_message, quote=True)
             return
+
     return wrapper
 
 
@@ -184,6 +193,7 @@ def require_chat_config(
     A generic decorator to guard commands based on chat configuration.
     This check is SKIPPED in private messages.
     """
+
     def decorator(func):
         @functools.wraps(func)
         async def wrapper(client: Client, message: Message, *args, **kwargs):
@@ -203,7 +213,9 @@ def require_chat_config(
                 )
                 await message.reply_text(error_message, quote=True)
                 return
+
         return wrapper
+
     return decorator
 
 

@@ -2,8 +2,7 @@ import structlog
 from pyrogram import Client, filters
 from pyrogram.types import InputMediaPhoto, Message
 from utils.api_client import backend_client
-from utils.decorators import handle_api_errors, nsfw_guard, rate_limit
-from utils.exceptions import APIError
+from utils.decorators import handle_api_errors, rate_limit
 from utils.help_registry import command_handler
 
 log = structlog.get_logger(__name__)

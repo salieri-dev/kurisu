@@ -14,4 +14,5 @@ class DashboardConfig(BaseSettings):
         env_file_encoding="utf-8",
     )
 
+
 settings = DashboardConfig()

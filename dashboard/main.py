@@ -1,10 +1,7 @@
-import json
-
 import httpx
 import structlog
 from config import settings
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from kurisu_core.logging_config import setup_structlog
 
@@ -12,6 +9,7 @@ setup_structlog(json_logs=settings.json_logs)
 logger = structlog.get_logger(__name__)
 
 app = FastAPI(title="Kurisu Dashboard")
+
 
 async def get_backend_client() -> httpx.AsyncClient:
     """Creates an httpx client to communicate with the backend."""
@@ -32,10 +30,15 @@ async def proxy_get_all_configs():
             return response.json()
     except httpx.HTTPStatusError as e:
         logger.error("Backend error getting configs", detail=e.response.text)
-        raise HTTPException(status_code=e.response.status_code, detail=e.response.json())
+        raise HTTPException(
+            status_code=e.response.status_code, detail=e.response.json()
+        )
     except httpx.RequestError as e:
         logger.error("Network error getting configs", error=str(e))
-        raise HTTPException(status_code=502, detail="Bad Gateway: Cannot connect to backend service.")
+        raise HTTPException(
+            status_code=502, detail="Bad Gateway: Cannot connect to backend service."
+        )
+
 
 @app.post("/api/configs")
 async def proxy_update_config(request: Request):
@@ -49,10 +52,15 @@ async def proxy_update_config(request: Request):
             return response.json()
     except httpx.HTTPStatusError as e:
         logger.error("Backend error updating config", detail=e.response.text)
-        raise HTTPException(status_code=e.response.status_code, detail=e.response.json())
+        raise HTTPException(
+            status_code=e.response.status_code, detail=e.response.json()
+        )
     except httpx.RequestError as e:
         logger.error("Network error updating config", error=str(e))
-        raise HTTPException(status_code=502, detail="Bad Gateway: Cannot connect to backend service.")
+        raise HTTPException(
+            status_code=502, detail="Bad Gateway: Cannot connect to backend service."
+        )
+
 
 @app.delete("/api/configs/cache/{key:path}")
 async def proxy_clear_cache(key: str):
@@ -64,9 +72,14 @@ async def proxy_clear_cache(key: str):
             return {"message": f"Cache for key '{key}' cleared successfully."}
     except httpx.HTTPStatusError as e:
         logger.error("Backend error clearing cache", key=key, detail=e.response.text)
-        raise HTTPException(status_code=e.response.status_code, detail=e.response.json())
+        raise HTTPException(
+            status_code=e.response.status_code, detail=e.response.json()
+        )
     except httpx.RequestError as e:
         logger.error("Network error clearing cache", key=key, error=str(e))
-        raise HTTPException(status_code=502, detail="Bad Gateway: Cannot connect to backend service.")
+        raise HTTPException(
+            status_code=502, detail="Bad Gateway: Cannot connect to backend service."
+        )
+
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

@@ -67,6 +67,7 @@ async def get_config(
         )
     return config_item
 
+
 @router.get(
     "",
     response_model=List[ConfigGetResponse],

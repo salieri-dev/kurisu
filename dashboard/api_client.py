@@ -5,6 +5,7 @@ from typing import Any, List
 import httpx
 from config import settings
 
+
 class BackendClient:
     def __init__(self):
         self._client = httpx.AsyncClient(
@@ -23,7 +24,7 @@ class BackendClient:
         try:
             value_parsed = json.loads(value)
         except json.JSONDecodeError:
-            value_parsed = value # Keep as string if not valid JSON
+            value_parsed = value  # Keep as string if not valid JSON
 
         payload = {"key": key, "value": value_parsed, "description": description}
         response = await self._client.post("/core/config", json=payload)
@@ -33,5 +34,6 @@ class BackendClient:
     async def clear_cache(self, key: str):
         response = await self._client.delete(f"/core/config/cache/{key}")
         response.raise_for_status()
+
 
 client = BackendClient()

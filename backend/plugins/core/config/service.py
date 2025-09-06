@@ -113,7 +113,6 @@ class ConfigService:
         item = await self.repository.get_config(key)
         return ConfigGetResponse.model_validate(item) if item else None
 
-
     async def get_all_configs(self) -> list[ConfigGetResponse]:
         """
         Retrieves all configuration items directly from the database, bypassing cache.
@@ -133,6 +132,7 @@ class ConfigService:
         except Exception as e:
             logger.error("Redis error on explicit DELETE", key=key, error=str(e))
             return False
+
 
 async def get_config_collection(
     database: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
