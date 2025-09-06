@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kurisu-bot"
-version = "0.1.0"
+version = "1.0.0"
 description = "Telegram bot interface for the Kurisu project."
 authors = ["Your Name <you@example.com>"]
 package-mode = false
