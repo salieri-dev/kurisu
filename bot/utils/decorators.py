@@ -67,10 +67,21 @@ def handle_api_errors(func):
 
             wait_msg = getattr(message, "wait_msg", None)
 
-            if wait_msg:
-                await wait_msg.edit_text(user_message)
-            else:
-                await message.reply_text(user_message, quote=True)
+            try:
+                if wait_msg:
+                    await wait_msg.edit_text(user_message)
+                else:
+                    await message.reply_text(user_message, quote=True)
+            except Exception as edit_error:
+                # If editing fails (e.g., message was deleted), send a new message
+                log.warning(
+                    "Failed to edit wait message, sending new reply",
+                    error=str(edit_error),
+                )
+                try:
+                    await message.reply_text(user_message, quote=True)
+                except Exception as reply_error:
+                    log.error("Failed to send error message", error=str(reply_error))
             return
         except Exception as e:
             log.exception(
@@ -81,10 +92,21 @@ def handle_api_errors(func):
 
             error_message = "🔧 Произошла непредвиденная внутренняя ошибка. Разработчики уже уведомлены."
             wait_msg = getattr(message, "wait_msg", None)
-            if wait_msg:
-                await wait_msg.edit_text(error_message)
-            else:
-                await message.reply_text(error_message, quote=True)
+
+            try:
+                if wait_msg:
+                    await wait_msg.edit_text(error_message)
+                else:
+                    await message.reply_text(error_message, quote=True)
+            except Exception as edit_error:
+                log.warning(
+                    "Failed to edit wait message, sending new reply",
+                    error=str(edit_error),
+                )
+                try:
+                    await message.reply_text(error_message, quote=True)
+                except Exception as reply_error:
+                    log.error("Failed to send error message", error=str(reply_error))
             return
 
     return wrapper
