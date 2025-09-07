@@ -218,3 +218,4 @@ __marimo__/
 # Kurisu
 .data
 *.session
+.sandbox
