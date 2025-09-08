@@ -23,7 +23,7 @@ redis = "^6.4.0"
 celery = "^5.5.3"
 structlog = "^25.4.0"
 httpx = {extras = ["http2"], version = "^0.28.1"}
-openai = "^1.102.0"
+openai = "^1.106.1"
 fal-client = "^0.7.0"
 imgkit = "^1.2.3"
 jinja2 = "^3.1.6"
@@ -38,10 +38,10 @@ opentelemetry-instrumentation-httpx = "^0.57b0"
 python-multipart = "^0.0.20"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.4.1"
+pytest = "^8.4.2"
 pytest-asyncio = "^1.1.0"
 pytest-dotenv = "^0.5.2"
-ruff = "^0.12.11"
+ruff = "^0.12.12"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
