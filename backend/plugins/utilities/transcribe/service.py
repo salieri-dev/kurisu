@@ -2,7 +2,6 @@ from io import BytesIO
 from typing import Annotated
 from fastapi import Depends, UploadFile
 from structlog import get_logger
-
 from utils.dependencies import get_fal_client
 from utils.exceptions import BadRequestError
 from utils.fal_client import FalAIClient
@@ -10,7 +9,6 @@ from plugins.core.config.service import ConfigService, get_config_service
 from .models import TranscribeResponse
 
 logger = get_logger(__name__)
-
 
 class TranscribeService:
     def __init__(
@@ -22,7 +20,7 @@ class TranscribeService:
         self.fal = fal_client
 
     async def transcribe_audio(
-        self, audio_file: UploadFile, duration: float
+        self, file: UploadFile, duration: float
     ) -> TranscribeResponse:
         min_duration = await self.config.get_or_create(
             "utilities/transcribe.min_duration_seconds",
@@ -36,8 +34,8 @@ class TranscribeService:
         )
         model_name = await self.config.get_or_create(
             "utilities/transcribe.model_name",
-            "whisperx",
-            "Fal.ai model for transcription.",
+            "fal-ai/wizper",
+            "Fal.ai model for transcription (e.g., fal-ai/wizper).",
         )
         blocked_texts = await self.config.get_or_create(
             "utilities/transcribe.blocked_texts",
@@ -51,8 +49,13 @@ class TranscribeService:
                 f"Audio duration must be between {min_duration} and {max_duration} seconds."
             )
 
-        audio_bytes = BytesIO(await audio_file.read())
-        transcription = await self.fal.transcribe_audio(model_name, audio_bytes)
+        audio_bytes = BytesIO(await file.read())
+        
+        transcription = await self.fal.transcribe_audio(
+            model_name,
+            audio_bytes,
+            file.filename or "audio.ogg"
+        )
 
         if any(text.lower() in transcription.lower() for text in blocked_texts):
             logger.info(
@@ -62,7 +65,6 @@ class TranscribeService:
             transcription = ""
 
         return TranscribeResponse(transcription=transcription, duration=duration)
-
 
 def get_transcribe_service(
     service: Annotated[TranscribeService, Depends(TranscribeService)],

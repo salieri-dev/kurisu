@@ -13,11 +13,11 @@ router = APIRouter()
 )
 async def transcribe_endpoint(
     service: Annotated[TranscribeService, Depends(get_transcribe_service)],
-    audio_file: UploadFile = File(..., alias="file"),
+    file: UploadFile = File(...),
     duration: float = Form(...),
 ):
     """
     Accepts an audio file and its duration, transcribes it, and returns the text.
     The file should be sent with the key 'file'.
     """
-    return await service.transcribe_audio(audio_file, duration)
+    return await service.transcribe_audio(file, duration)

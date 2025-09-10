@@ -48,11 +48,12 @@ async def transcribe_handler(client: Client, message: Message):
         return
 
     duration = media.duration
+
     min_duration = await get_config(
-        message, "utilities/transcribe.min_duration_seconds", 5
+        "utilities/transcribe.min_duration_seconds", message, 5
     )
     max_duration = await get_config(
-        message, "utilities/transcribe.max_duration_seconds", 600
+        "utilities/transcribe.max_duration_seconds", message, 600
     )
 
     if not (min_duration <= duration <= max_duration):

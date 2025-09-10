@@ -13,14 +13,19 @@ async def get_media_as_bytes(message: Message) -> Optional[Tuple[BytesIO, bool]]
     """
     Retrieves media from a message or its reply as a BytesIO object.
 
-    Checks for photos, stickers (non-animated), animations, and documents with image/gif MIME types.
+    Handles photos, stickers, animations, documents, and now also
+    voice messages, audio files, and video notes.
 
     Returns:
         A tuple of (BytesIO, is_gif) or None if no valid media is found.
     """
     target_message = message.reply_to_message or message
+
     media_obj = (
-        target_message.photo
+        target_message.voice
+        or target_message.audio
+        or target_message.video_note
+        or target_message.photo
         or target_message.sticker
         or target_message.animation
         or target_message.video
@@ -31,11 +36,16 @@ async def get_media_as_bytes(message: Message) -> Optional[Tuple[BytesIO, bool]]
         return None
 
     is_gif = False
+    is_transcribable_media = hasattr(media_obj, "duration")
+
     if hasattr(media_obj, "mime_type"):
         if media_obj.mime_type in GIF_MIMES:
             is_gif = True
-        elif media_obj.mime_type not in SUPPORTED_MIMES:
-            log.warning("Unsupported document MIME type", mime=media_obj.mime_type)
+        elif not is_transcribable_media and media_obj.mime_type not in SUPPORTED_MIMES:
+            log.warning(
+                "Unsupported document MIME type for image processing",
+                mime=media_obj.mime_type,
+            )
             return None
 
     if hasattr(media_obj, "is_animated") and media_obj.is_animated:

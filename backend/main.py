@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
     )
     logger.info("LLM Client initialized.")
 
-    app.state.fal_client = FalAIClient(api_key=settings.fal_api_key)
+    app.state.fal_client = FalAIClient()
     logger.info("Fal.ai Client initialized.")
 
     yield

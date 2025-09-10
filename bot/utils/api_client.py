@@ -179,9 +179,10 @@ class BackendClient:
         file_name: str,
         file_mime: str,
         data: Optional[Dict[str, Any]] = None,
+        file_part_name: str = "file",
     ) -> Tuple[bytes, str]:
         """Make a POST request with a file and return the content and content-type."""
-        files = {"image": (file_name, file_bytes, file_mime)}
+        files = {file_part_name: (file_name, file_bytes, file_mime)}
         response = await self.request(
             "POST", path, message=message, data=data, files=files
         )

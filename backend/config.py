@@ -21,7 +21,7 @@ class AppConfig(BaseSettings):
         default="http://salieri.dev", alias="LLM_HTTP_REFERER"
     )
     llm_x_title: str = Field(default="not_salieri_bot", alias="LLM_X_TITLE")
-    fal_api_key: str = Field(..., alias="FAL_API_KEY")
+    FAL_KEY: str = Field(..., alias="FAL_KEY")
     instagram_headers_json: dict[str, Any] = Field(..., alias="INSTAGRAM_HEADERS_JSON")
     instagram_cookies_json: dict[str, Any] = Field(..., alias="INSTAGRAM_COOKIES_JSON")
     instagram_payload_json: dict[str, Any] = Field(..., alias="INSTAGRAM_PAYLOAD_JSON")
