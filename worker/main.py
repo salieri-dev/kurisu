@@ -5,7 +5,6 @@ import sys
 import time
 import uuid
 from typing import Any
-
 import structlog
 from config import settings
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -17,7 +16,6 @@ from redis.exceptions import BusyLoadingError
 from redis.exceptions import ConnectionError as RedisConnectionError
 from utils.clients import get_mongo_client, get_mongo_database, get_redis_client
 from utils.repository import MessageRepository, ServiceError
-
 from kurisu_core.logging_config import setup_structlog
 from kurisu_core.tracing import setup_tracing
 
@@ -37,11 +35,31 @@ class MessageWorker:
         self.batch_lock = asyncio.Lock()
         self.last_batch_sent_time = asyncio.get_event_loop().time()
 
+    def _is_valid_for_analysis(self, message: dict[str, Any]) -> bool:
+        """
+        Checks if a message from the queue is valid for sentiment analysis.
+        This mirrors the filtering logic from the sentiment worker's aggregation pipeline.
+        """
+        if message.get("chat", {}).get("type") == "ChatType.PRIVATE":
+            return False
+
+        event_type = message.get("_") or message.get("event_type")
+        if event_type != "Message":
+            return False
+
+        if message.get("from_user", {}).get("is_bot", False):
+            return False
+
+        content = message.get("text") or message.get("caption")
+        if not content:
+            return False
+        if content.startswith("/"):
+            return False
+
     async def connect(self):
         """Initialize connections to Redis and MongoDB with a retry mechanism."""
         self.redis_client = get_redis_client()
         self.mongo_client = get_mongo_client()
-
         for attempt in range(settings.connect_retry_attempts):
             try:
                 await self.redis_client.ping()
@@ -58,7 +76,6 @@ class MessageWorker:
                 await asyncio.sleep(
                     settings.connect_retry_delay_seconds * (attempt + 1)
                 )
-
         for attempt in range(settings.connect_retry_attempts):
             try:
                 await self.mongo_client.admin.command("ping")
@@ -88,7 +105,7 @@ class MessageWorker:
             self.mongo_client.close()
 
     async def process_batch(self, messages: list[dict[str, Any]]) -> bool:
-        """Save a batch of messages and enqueue their IDs for sentiment analysis."""
+        """Save a batch of messages and enqueue valid ones for sentiment analysis."""
         if not messages or not self.repository:
             return True
 
@@ -99,20 +116,29 @@ class MessageWorker:
             span.set_attribute("db.system", "mongodb")
             span.set_attribute("db.operation", "insert_many")
             span.set_attribute("batch.size", batch_size)
-
             log = self.logger.bind(correlation_id=correlation_id, batch_size=batch_size)
 
             try:
                 inserted_ids = await self.repository.save_many(messages)
-                if inserted_ids and self.redis_client:
+
+                items_to_enqueue = []
+                for msg, inserted_id in zip(messages, inserted_ids):
+                    if self._is_valid_for_analysis(msg):
+                        item = {
+                            "_id": str(inserted_id),
+                            "text": msg.get("text") or msg.get("caption", ""),
+                        }
+                        items_to_enqueue.append(json.dumps(item))
+
+                if items_to_enqueue and self.redis_client:
                     await self.redis_client.lpush(
-                        "sentiment_analysis_queue", *inserted_ids
+                        "sentiment_analysis_queue", *items_to_enqueue
                     )
 
                 log.info(
                     "Batch processed and enqueued for analysis",
                     saved_count=len(inserted_ids),
-                    enqueued_count=len(inserted_ids),
+                    enqueued_count=len(items_to_enqueue),
                 )
                 return True
             except ServiceError as e:
@@ -126,18 +152,15 @@ class MessageWorker:
         """Process a single message from the queue."""
         try:
             message = json.loads(message_data)
-
             trace_context = message.get("trace_context", {})
             ctx = extract(trace_context)
             tracer = trace.get_tracer(__name__)
-
             with tracer.start_as_current_span(
                 "process_message_from_queue", context=ctx
             ) as span:
                 span.set_attribute("messaging.system", "redis")
                 span.set_attribute("messaging.source", self.queue_name)
                 span.set_attribute("messaging.message_id", message.get("id"))
-
                 structlog.contextvars.clear_contextvars()
                 structlog.contextvars.bind_contextvars(
                     message_id=message.get("id"),
@@ -145,19 +168,16 @@ class MessageWorker:
                 )
                 log = structlog.get_logger()
                 log.info("Processing message from queue")
-
                 if "retry_count" not in message:
                     message["retry_count"] = 0
                 if "first_attempt_time" not in message:
                     message["first_attempt_time"] = time.time()
-
                 self.processing_batch.append(message)
                 if len(self.processing_batch) >= settings.batch_size:
                     async with self.batch_lock:
                         if self.processing_batch:
                             self.logger.info("Sending batch due to size limit")
                             await self.send_current_batch()
-
         except json.JSONDecodeError:
             self.logger.error("Failed to parse message JSON", message_data=message_data)
         except Exception:
@@ -167,10 +187,8 @@ class MessageWorker:
         """Send the current batch to the repository."""
         if not self.processing_batch:
             return
-
         batch_to_send = self.processing_batch.copy()
         self.processing_batch.clear()
-
         if await self.process_batch(batch_to_send):
             self.last_batch_sent_time = asyncio.get_event_loop().time()
         else:
@@ -209,7 +227,6 @@ class MessageWorker:
                 "Could not establish initial connections to services. Shutting down."
             )
             raise
-
         self.logger.info("Message worker started successfully.")
         try:
             while True:
@@ -220,7 +237,6 @@ class MessageWorker:
                     if message_data:
                         _, message_json = message_data
                         await self.process_message(message_json)
-
                     time_since_last_batch = (
                         asyncio.get_event_loop().time() - self.last_batch_sent_time
                     )
@@ -259,7 +275,6 @@ async def main():
     setup_tracing(service_name=os.getenv("SERVICE_NAME", "worker"))
     logger = structlog.get_logger(__name__)
     worker = MessageWorker(logger=logger)
-
     try:
         await worker.run()
     except KeyboardInterrupt:

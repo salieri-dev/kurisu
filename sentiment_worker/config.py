@@ -19,7 +19,7 @@ class WorkerConfig(BaseSettings):
     )
 
     batch_size: int = Field(default=32, alias="SENTIMENT_BATCH_SIZE")
-    model_device: str = Field(default="cpu", alias="SENTIMENT_MODEL_DEVICE")
+    model_device: str = Field(default="gpu", alias="SENTIMENT_MODEL_DEVICE")
 
     model_config = SettingsConfigDict(
         env_file=".env",

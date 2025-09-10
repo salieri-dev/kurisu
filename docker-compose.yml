@@ -265,6 +265,8 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - REDIS_URL=redis://redis:6379
       - JSON_LOGS=true
+      - SENTIMENT_MODEL_DEVICE=cuda
+      - SENTIMENT_BATCH_SIZE=256
     labels:
       - "logging=promtail"
     depends_on:
