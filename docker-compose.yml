@@ -9,7 +9,7 @@ services:
       - ${ALTGIRLS_ASSETS_PATH}:/opt/kurisu/backend/plugins/fun/altgirls/assets 
       - ${THREADS_ASSETS_PATH}:/opt/kurisu/backend/plugins/neuro/threads/assets
     ports:
-      - "8000:8000"
+      - "${TAILSCALE_IP}:8000:8000"
     restart: unless-stopped
     networks:
       - app-network
@@ -174,7 +174,7 @@ services:
       - ./monitoring/loki/config.yml:/etc/loki/config.yml
       - ./.data/loki:/loki
     ports:
-      - "3100:3100"
+      - "${TAILSCALE_IP}:3100:3100"
     command: -config.file=/etc/loki/config.yml
     networks:
       - app-network
@@ -237,6 +237,41 @@ services:
     networks:
       - app-network
 
+  sentiment-worker:
+    build:
+      context: . 
+      dockerfile: sentiment_worker/Dockerfile 
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1 # or 'all'
+              capabilities: [gpu]
+    volumes:
+      - ./sentiment_worker:/opt/kurisu/sentiment_worker
+      - ./kurisu_core:/opt/kurisu/kurisu_core
+      - ./.data/hf_cache:/opt/kurisu/cache
+    restart: unless-stopped
+    networks:
+      - app-network
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - SERVICE_NAME=sentiment-worker
+      - OTEL_SERVICE_NAME=sentiment-worker
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - REDIS_URL=redis://redis:6379
+      - JSON_LOGS=true
+    labels:
+      - "logging=promtail"
+    depends_on:
+      - redis
+      - mongodb
+      - otel-collector
+
   dashboard:
     build:
       context: .
@@ -245,7 +280,7 @@ services:
       - ./dashboard:/opt/kurisu/dashboard
       - ./kurisu_core:/opt/kurisu/kurisu_core
     ports:
-      - "8001:8001" # Or any other port you prefer
+      - "${TAILSCALE_IP}:8001:8001"
     restart: unless-stopped
     networks:
       - app-network
@@ -255,7 +290,7 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - SERVICE_NAME=dashboard
-      - OTEL_SERVICE_NAME=dashboard # Optional: if you want tracing
+      - OTEL_SERVICE_NAME=dashboard
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - BACKEND_URL=http://backend:8000
       - JSON_LOGS=true

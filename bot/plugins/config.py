@@ -26,12 +26,16 @@ async def get_and_reply_with_config(message: Message, prefix: str = "") -> None:
             f"/core/chat_config/{message.chat.id}", message=message
         )
         configs = response.get("configs", {})
+
         nsfw_enabled = configs.get("nsfw_enabled", False)
+        transcribe_enabled = configs.get("transcribe_enabled", True)
+
         nsfw_status = "✅ Включен" if nsfw_enabled else "❌ Отключен"
+        transcribe_status = "✅ Включена" if transcribe_enabled else "❌ Отключена"
 
         config_body = f"""⚙️ **Текущие настройки чата**
-
 • **NSFW-контент**: {nsfw_status}
+• **Расшифровка ГС**: {transcribe_status}
 
 **Как изменить настройки:**
 Используйте команду в формате `/config <действие> <параметр>`.
@@ -42,13 +46,13 @@ async def get_and_reply_with_config(message: Message, prefix: str = "") -> None:
 
 **Параметры:**
 • `nsfw` - разрешает или запрещает NSFW-контент.
+• `transcribe` - включает или отключает расшифровку голосовых сообщений.
 
 **Пример:**
-`/config enable nsfw`"""
+`/config disable transcribe`"""
 
         final_message = f"{prefix}\n\n{config_body}" if prefix else config_body
         await message.reply_text(final_message, disable_web_page_preview=True)
-
     except Exception as e:
         log.error("Failed to get chat config from API", error=str(e), exc_info=True)
         await message.reply_text(
@@ -61,7 +65,7 @@ async def get_and_reply_with_config(message: Message, prefix: str = "") -> None:
     commands=["config"],
     description="Управление настройками чата (только для администраторов).",
     group="Администрирование",
-    arguments="[enable/disable] [nsfw]",
+    arguments="[enable/disable] [nsfw/transcribe]",
 )
 @bind_context
 async def handle_config(client: Client, message: Message):
@@ -71,7 +75,6 @@ async def handle_config(client: Client, message: Message):
     if message.chat.type == ChatType.PRIVATE:
         await message.reply_text("Эта команда работает только в групповых чатах.")
         return
-
     if not await is_admin(client, message.chat.id, message.from_user.id):
         log.warning("Non-admin user tried to use /config")
         await message.reply_text(
@@ -80,7 +83,6 @@ async def handle_config(client: Client, message: Message):
         return
 
     args = message.text.split()
-
     if len(args) == 1:
         log.info("Displaying chat config")
         await get_and_reply_with_config(message)
@@ -89,15 +91,13 @@ async def handle_config(client: Client, message: Message):
     if len(args) == 3:
         _, action, param_name = args
         action, param_name = action.lower(), param_name.lower()
-
-        supported_params = {"nsfw": "nsfw_enabled"}
+        supported_params = {"nsfw": "nsfw_enabled", "transcribe": "transcribe_enabled"}
         if param_name not in supported_params:
             log.warning("Invalid config parameter used", param=param_name)
             await message.reply_text(
-                f"Неизвестный параметр: `{param_name}`. Доступные параметры: `nsfw`."
+                f"Неизвестный параметр: `{param_name}`. Доступные параметры: `nsfw`, `transcribe`."
             )
             return
-
         if action not in ["enable", "disable"]:
             log.warning("Invalid config action used", action=action)
             await message.reply_text(
@@ -107,7 +107,6 @@ async def handle_config(client: Client, message: Message):
 
         param_value = action == "enable"
         db_param_name = supported_params[param_name]
-
         try:
             log.info(
                 "Setting chat config",
@@ -115,7 +114,6 @@ async def handle_config(client: Client, message: Message):
                 value=param_value,
                 chat_id=message.chat.id,
             )
-
             await backend_client.post(
                 "/core/chat_config/set",
                 message=message,
@@ -126,11 +124,12 @@ async def handle_config(client: Client, message: Message):
                 },
             )
 
-            if db_param_name == "nsfw_enabled":
-                cache_key = f"chat_config:{message.chat.id}:nsfw_enabled"
+            cache_key_prefix = f"chat_config:{message.chat.id}"
+            if db_param_name in ["nsfw_enabled", "transcribe_enabled"]:
+                cache_key = f"{cache_key_prefix}:{db_param_name}"
                 await redis_client.set(cache_key, "1" if param_value else "0", ex=300)
                 log.info(
-                    "Cache updated for nsfw_enabled",
+                    f"Cache updated for {db_param_name}",
                     chat_id=message.chat.id,
                     new_value=param_value,
                 )
@@ -138,9 +137,10 @@ async def handle_config(client: Client, message: Message):
             success_prefix = ""
             if param_name == "nsfw":
                 success_prefix = f"✅ NSFW-контент теперь **{'разрешен' if param_value else 'запрещен'}**."
+            elif param_name == "transcribe":
+                success_prefix = f"✅ Расшифровка голосовых сообщений **{'включена' if param_value else 'отключена'}**."
 
             await get_and_reply_with_config(message, prefix=success_prefix)
-
         except Exception as e:
             log.error(
                 "Failed to set chat config via API",

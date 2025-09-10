@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 from pymongo.errors import PyMongoError
@@ -19,17 +19,16 @@ class MessageRepository:
     def __init__(self, collection: AsyncIOMotorCollection):
         self._collection = collection
 
-    async def save_many(self, messages: list[dict[str, Any]]) -> int:
+    async def save_many(self, messages: list[dict[str, Any]]) -> List[str]:
         """
         Saves a batch of messages to the database.
-        Returns the number of successfully inserted messages.
+        Returns the list of successfully inserted message ObjectIds as strings.
         """
         if not messages:
-            return 0
+            return []
         try:
             result = await self._collection.insert_many(messages, ordered=False)
-            return len(result.inserted_ids)
+            return [str(oid) for oid in result.inserted_ids]
         except PyMongoError as e:
             logger.error("Database error during batch message insert", error=str(e))
-
             raise ServiceError(f"Batch insert database error: {e}") from e

@@ -88,12 +88,12 @@ class MessageWorker:
             self.mongo_client.close()
 
     async def process_batch(self, messages: list[dict[str, Any]]) -> bool:
-        """Save a batch of messages directly to MongoDB via the repository."""
+        """Save a batch of messages and enqueue their IDs for sentiment analysis."""
         if not messages or not self.repository:
             return True
 
         tracer = trace.get_tracer(__name__)
-        with tracer.start_as_current_span("save_batch_to_mongodb") as span:
+        with tracer.start_as_current_span("save_and_enqueue_batch") as span:
             correlation_id = messages[0].get("correlation_id") or str(uuid.uuid4())
             batch_size = len(messages)
             span.set_attribute("db.system", "mongodb")
@@ -103,11 +103,16 @@ class MessageWorker:
             log = self.logger.bind(correlation_id=correlation_id, batch_size=batch_size)
 
             try:
-                successful_saves = await self.repository.save_many(messages)
+                inserted_ids = await self.repository.save_many(messages)
+                if inserted_ids and self.redis_client:
+                    await self.redis_client.lpush(
+                        "sentiment_analysis_queue", *inserted_ids
+                    )
+
                 log.info(
-                    "Batch processed successfully",
-                    successful=successful_saves,
-                    failed=len(messages) - successful_saves,
+                    "Batch processed and enqueued for analysis",
+                    saved_count=len(inserted_ids),
+                    enqueued_count=len(inserted_ids),
                 )
                 return True
             except ServiceError as e:
