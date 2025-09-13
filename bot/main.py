@@ -1,11 +1,13 @@
+# path: bot/main.py
+
 import os
 import asyncio
 import structlog
 from config import credentials
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
-from pyrogram import Client, idle
-
-from jobs.active_chats import init_scheduled_jobs
+from pyrogram.client import Client
+from pyrogram.sync import idle
+from jobs.manager import init_scheduled_jobs
 from kurisu_core.logging_config import setup_structlog
 from kurisu_core.tracing import setup_tracing
 
@@ -29,7 +31,6 @@ async def main():
     async with app:
         logger.info("Client connected. Initializing scheduled jobs...")
         init_scheduled_jobs(app)
-
         logger.info(
             f"Bot '{credentials.bot.name}' started successfully. Waiting for updates..."
         )

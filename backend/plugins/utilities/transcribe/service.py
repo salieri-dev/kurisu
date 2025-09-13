@@ -10,6 +10,7 @@ from .models import TranscribeResponse
 
 logger = get_logger(__name__)
 
+
 class TranscribeService:
     def __init__(
         self,
@@ -50,11 +51,9 @@ class TranscribeService:
             )
 
         audio_bytes = BytesIO(await file.read())
-        
+
         transcription = await self.fal.transcribe_audio(
-            model_name,
-            audio_bytes,
-            file.filename or "audio.ogg"
+            model_name, audio_bytes, file.filename or "audio.ogg"
         )
 
         if any(text.lower() in transcription.lower() for text in blocked_texts):
@@ -65,6 +64,7 @@ class TranscribeService:
             transcription = ""
 
         return TranscribeResponse(transcription=transcription, duration=duration)
+
 
 def get_transcribe_service(
     service: Annotated[TranscribeService, Depends(TranscribeService)],

@@ -22,6 +22,7 @@ opentelemetry-sdk = "^1.36.0"
 opentelemetry-exporter-otlp-proto-grpc = "^1.36.0"
 opentelemetry-instrumentation-httpx = "^0.57b0"
 apscheduler = "^3.11.0"
+pytz = "^2025.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

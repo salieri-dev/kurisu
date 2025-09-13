@@ -18,7 +18,7 @@ class WorkerConfig(BaseSettings):
         default="Skoltech/russian-sensitive-topics", alias="SENSITIVE_TOPICS_MODEL"
     )
 
-    batch_size: int = Field(default=32, alias="SENTIMENT_BATCH_SIZE")
+    batch_size: int = Field(default=64, alias="SENTIMENT_BATCH_SIZE")
     model_device: str = Field(default="gpu", alias="SENTIMENT_MODEL_DEVICE")
 
     model_config = SettingsConfigDict(

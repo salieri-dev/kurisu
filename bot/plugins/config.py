@@ -1,3 +1,5 @@
+# path: bot/plugins/config.py
+
 import structlog
 from pyrogram import Client, filters
 from pyrogram.enums import ChatMemberStatus, ChatType
@@ -27,15 +29,23 @@ async def get_and_reply_with_config(message: Message, prefix: str = "") -> None:
         )
         configs = response.get("configs", {})
 
+        # --- Fetch all config values with safe defaults ---
         nsfw_enabled = configs.get("nsfw_enabled", False)
         transcribe_enabled = configs.get("transcribe_enabled", True)
+        summary_enabled = configs.get("summary_enabled", False)
+        summary_roast_enabled = configs.get("summary_roast_enabled", True)
 
+        # --- Format status strings ---
         nsfw_status = "✅ Включен" if nsfw_enabled else "❌ Отключен"
         transcribe_status = "✅ Включена" if transcribe_enabled else "❌ Отключена"
+        summary_status = "✅ Включена" if summary_enabled else "❌ Отключена"
+        roast_status = "✅ Включена" if summary_roast_enabled else "❌ Отключена"
 
         config_body = f"""⚙️ **Текущие настройки чата**
 • **NSFW-контент**: {nsfw_status}
 • **Расшифровка ГС**: {transcribe_status}
+• **Ежедневные сводки**: {summary_status}
+• **Прожарка от бота в сводках**: {roast_status}
 
 **Как изменить настройки:**
 Используйте команду в формате `/config <действие> <параметр>`.
@@ -46,11 +56,12 @@ async def get_and_reply_with_config(message: Message, prefix: str = "") -> None:
 
 **Параметры:**
 • `nsfw` - разрешает или запрещает NSFW-контент.
-• `transcribe` - включает или отключает расшифровку голосовых сообщений.
+• `transcribe` - включает или отключает расшифровку голосовых.
+• `summary` - включает или отключает ежедневные сводки.
+• `summary_roast` - включает или отключает прожарку в сводках.
 
 **Пример:**
-`/config disable transcribe`"""
-
+`/config enable summary`"""
         final_message = f"{prefix}\n\n{config_body}" if prefix else config_body
         await message.reply_text(final_message, disable_web_page_preview=True)
     except Exception as e:
@@ -65,13 +76,11 @@ async def get_and_reply_with_config(message: Message, prefix: str = "") -> None:
     commands=["config"],
     description="Управление настройками чата (только для администраторов).",
     group="Администрирование",
-    arguments="[enable/disable] [nsfw/transcribe]",
+    arguments="[enable/disable] [param]",
 )
 @bind_context
 async def handle_config(client: Client, message: Message):
-    """
-    Handle the /config command to view or change chat settings.
-    """
+    """Handle the /config command to view or change chat settings."""
     if message.chat.type == ChatType.PRIVATE:
         await message.reply_text("Эта команда работает только в групповых чатах.")
         return
@@ -91,13 +100,21 @@ async def handle_config(client: Client, message: Message):
     if len(args) == 3:
         _, action, param_name = args
         action, param_name = action.lower(), param_name.lower()
-        supported_params = {"nsfw": "nsfw_enabled", "transcribe": "transcribe_enabled"}
+
+        supported_params = {
+            "nsfw": "nsfw_enabled",
+            "transcribe": "transcribe_enabled",
+            "summary": "summary_enabled",
+            "summary_roast": "summary_roast_enabled",
+        }
+
         if param_name not in supported_params:
             log.warning("Invalid config parameter used", param=param_name)
             await message.reply_text(
-                f"Неизвестный параметр: `{param_name}`. Доступные параметры: `nsfw`, `transcribe`."
+                f"Неизвестный параметр: `{param_name}`. Доступные параметры: `nsfw`, `transcribe`, `summary`, `summary_roast`."
             )
             return
+
         if action not in ["enable", "disable"]:
             log.warning("Invalid config action used", action=action)
             await message.reply_text(
@@ -107,6 +124,7 @@ async def handle_config(client: Client, message: Message):
 
         param_value = action == "enable"
         db_param_name = supported_params[param_name]
+
         try:
             log.info(
                 "Setting chat config",
@@ -124,21 +142,23 @@ async def handle_config(client: Client, message: Message):
                 },
             )
 
-            cache_key_prefix = f"chat_config:{message.chat.id}"
-            if db_param_name in ["nsfw_enabled", "transcribe_enabled"]:
-                cache_key = f"{cache_key_prefix}:{db_param_name}"
-                await redis_client.set(cache_key, "1" if param_value else "0", ex=300)
-                log.info(
-                    f"Cache updated for {db_param_name}",
-                    chat_id=message.chat.id,
-                    new_value=param_value,
-                )
+            cache_key = f"chat_config:{message.chat.id}:{db_param_name}"
+            await redis_client.set(cache_key, "1" if param_value else "0", ex=300)
+            log.info(
+                f"Cache updated for {db_param_name}",
+                chat_id=message.chat.id,
+                new_value=param_value,
+            )
 
             success_prefix = ""
             if param_name == "nsfw":
                 success_prefix = f"✅ NSFW-контент теперь **{'разрешен' if param_value else 'запрещен'}**."
             elif param_name == "transcribe":
                 success_prefix = f"✅ Расшифровка голосовых сообщений **{'включена' if param_value else 'отключена'}**."
+            elif param_name == "summary":
+                success_prefix = f"✅ Ежедневные сводки **{'включены' if param_value else 'отключены'}**."
+            elif param_name == "summary_roast":
+                success_prefix = f"✅ Прожарка в сводках **{'включена' if param_value else 'отключена'}**."
 
             await get_and_reply_with_config(message, prefix=success_prefix)
         except Exception as e:

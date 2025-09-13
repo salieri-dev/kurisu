@@ -34,13 +34,16 @@ INDEX_DEFINITIONS = {
     "ideograms": [
         {"keys": [("user_id", ASCENDING), ("created_at", DESCENDING)], "options": {}},
     ],
+    "summaries": [
+        {"keys": [("chat_id", ASCENDING), ("summary_date", DESCENDING)], "options": {}},
+        {"keys": [("generated_at", DESCENDING)], "options": {}},
+    ],
 }
 
 
 async def ensure_indexes(db: AsyncIOMotorDatabase):
     """
     Checks and creates all defined MongoDB indexes if they don't exist.
-
     This function is idempotent and safe to run on every application startup.
     It uses background index creation to avoid blocking the startup process.
     """
