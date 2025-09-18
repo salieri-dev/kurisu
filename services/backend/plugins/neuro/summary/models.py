@@ -1,10 +1,6 @@
-# path: backend/plugins/neuro/summary/models.py
-
 from datetime import datetime
 from typing import List
 from pydantic import BaseModel, Field
-
-# --- Pydantic models for the LLM's structured output ---
 
 
 class Theme(BaseModel):
@@ -31,9 +27,6 @@ class LLMSummaryResponse(BaseModel):
     )
 
 
-# --- Pydantic models for the API endpoints ---
-
-
 class SummaryRequest(BaseModel):
     """Request body for the summary generation endpoint."""
 
@@ -48,9 +41,6 @@ class SummaryResponse(BaseModel):
     summary_id: str
     formatted_text: str
     message_count: int
-
-
-# --- Pydantic model for the Database document ---
 
 
 class SummaryDB(BaseModel):

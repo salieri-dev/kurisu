@@ -73,7 +73,6 @@ def handle_api_errors(func):
                 else:
                     await message.reply_text(user_message, quote=True)
             except Exception as edit_error:
-                # If editing fails (e.g., message was deleted), send a new message
                 log.warning(
                     "Failed to edit wait message, sending new reply",
                     error=str(edit_error),

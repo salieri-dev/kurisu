@@ -10,10 +10,8 @@ class ChatConfigPlugin:
     description = "Manages chat-specific configurations."
 
     async def setup(self, app: FastAPI, db: AsyncIOMotorDatabase):
-        # 1. Register API Routes
         app.include_router(router, prefix=f"/{self.name}", tags=[self.name.title()])
 
-        # 2. Register Database Indexes
         collection = db["chat_configs"]
         await collection.create_index(
             [("chat_id", ASCENDING), ("param_name", ASCENDING)],

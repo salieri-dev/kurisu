@@ -1,4 +1,3 @@
-# Path: dashboard/config.py
 from pydantic import Field, HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

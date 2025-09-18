@@ -1,47 +1,50 @@
 FROM pytorch/pytorch:2.8.0-cuda12.9-cudnn9-runtime
 
-# Declare build-args early so they don’t bust later cache
 ARG SENTIMENT_MODEL
 ARG SENSITIVE_TOPICS_MODEL
 
+# 1. Install Poetry and system dependencies
 ENV POETRY_VIRTUALENVS_CREATE=false \
     PIP_NO_CACHE_DIR=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    TRANSFORMERS_CACHE=/opt/kurisu/cache \
-    HF_HOME=/opt/kurisu/cache
-
+    TRANSFORMERS_CACHE=/app/cache \
+    HF_HOME=/app/cache
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/* \
     && pip install "poetry"
 
-WORKDIR /opt/kurisu/sentiment_worker
+# 2. Set up the application directory structure
+WORKDIR /app
 
-# Copy dependency files and local packages first to leverage Docker cache
-COPY packages/kurisu_core ../kurisu_core/
-COPY services/sentiment_worker/pyproject.toml services/sentiment_worker/poetry.lock ./
+# 3. Copy dependency definitions AND the full local package source
+COPY services/sentiment_worker/pyproject.toml services/sentiment_worker/poetry.lock ./services/sentiment_worker/
+COPY packages/kurisu_core ./packages/kurisu_core
 
-# Install Python dependencies
+# 4. Install Python dependencies
+WORKDIR /app/services/sentiment_worker
 RUN poetry install --no-interaction --no-ansi --only main --no-root
 
-# This RUN now uses the ARGs declared above to pre-download models
-RUN python -c "from transformers import AutoModelForSequenceClassification, AutoTokenizer; \
-    sentiment_model = '${SENTIMENT_MODEL}'; \
-    topics_model = '${SENSITIVE_TOPICS_MODEL}'; \
-    print(f'Downloading sentiment model: {sentiment_model}'); \
-    AutoTokenizer.from_pretrained(sentiment_model); \
-    AutoModelForSequenceClassification.from_pretrained(sentiment_model); \
-    print(f'Downloading topics model: {topics_model}'); \
-    AutoTokenizer.from_pretrained(topics_model); \
-    AutoModelForSequenceClassification.from_pretrained(topics_model);"
+# # 5. Pre-download models to a cache layer
+# RUN python -c "from transformers import AutoModelForSequenceClassification, AutoTokenizer; \
+#     sentiment_model = '${SENTIMENT_MODEL}'; \
+#     topics_model = '${SENSITIVE_TOPICS_MODEL}'; \
+#     print(f'Downloading sentiment model: {sentiment_model}'); \
+#     AutoTokenizer.from_pretrained(sentiment_model); \
+#     AutoModelForSequenceClassification.from_pretrained(sentiment_model); \
+#     print(f'Downloading topics model: {topics_model}'); \
+#     AutoTokenizer.from_pretrained(topics_model); \
+#     AutoModelForSequenceClassification.from_pretrained(topics_model);"
 
-# Create a non-root user and copy the rest of the application code
+# 6. Copy the service's source code
+WORKDIR /app
+COPY services/sentiment_worker/. ./services/sentiment_worker/
+
+# 7. Create and switch to a non-root user
 RUN useradd --create-home --shell /bin/bash app && \
-    chown -R app:app /opt/kurisu
-
-COPY --chown=app:app services/sentiment_worker/. .
-
+    chown -R app:app /app
 USER app
 
-# Start the application
+# 8. Set final workdir and run the application
+WORKDIR /app/services/sentiment_worker
 CMD ["python", "main.py"]

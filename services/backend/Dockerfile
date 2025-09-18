@@ -1,6 +1,6 @@
 FROM python:3.11-slim-bullseye
 
-# Install all system dependencies (build-time and runtime).
+# 1. Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ffmpeg \
@@ -11,31 +11,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Install latest Poetry and disable its virtualenv creation, for installing Python dependencies.
+# 2. Install Poetry
 ENV POETRY_VIRTUALENVS_CREATE=false \
     PIP_NO_CACHE_DIR=1
 RUN pip install "poetry"
 
-WORKDIR /opt/kurisu/backend
+# 3. Set up the application directory structure
+WORKDIR /app
 
-# Copy dependency files and local packages first to leverage Docker cache
-COPY services/backend/pyproject.toml services/backend/poetry.lock ./
-COPY packages/kurisu_core ../kurisu_core/
+# 4. Copy dependency definitions AND the full local package source
+COPY services/backend/pyproject.toml services/backend/poetry.lock ./services/backend/
+COPY packages/kurisu_core ./packages/kurisu_core
 
-# Install Python dependencies into the system environment
+# 5. Install dependencies
+WORKDIR /app/services/backend
 RUN poetry install --no-interaction --no-ansi --only main --no-root
 
-# Copy the rest of the application code
-COPY services/backend/. .
+# 6. Copy the service's source code
+WORKDIR /app
+COPY services/backend/. ./services/backend/
 
-# Create a non-root user for security
+# 7. Create and switch to a non-root user
 RUN useradd --create-home --shell /bin/bash backend && \
-    chown -R backend:backend /opt/kurisu
-
+    chown -R backend:backend /app
 USER backend
 
+# 8. Set final workdir and run the application
+WORKDIR /app/services/backend
 ENV PYTHONDONTWRITEBYTECODE=1
 EXPOSE 8000
-
-# Use python -m for robust execution
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-config", "uvicorn_log_config.json"]

@@ -18,8 +18,11 @@ from utils.clients import get_mongo_client, get_mongo_database, get_redis_client
 from utils.repository import MessageRepository, ServiceError
 from kurisu_core.logging_config import setup_structlog
 from kurisu_core.tracing import setup_tracing
+
+
 class MessageWorker:
     """Worker that processes messages from Redis and saves them directly to MongoDB."""
+
     def __init__(self, logger: structlog.stdlib.BoundLogger):
         self.redis_client: Redis | None = None
         self.mongo_client: AsyncIOMotorClient | None = None
@@ -31,6 +34,7 @@ class MessageWorker:
         self.processing_batch: list[dict[str, Any]] = []
         self.batch_lock = asyncio.Lock()
         self.last_batch_sent_time = asyncio.get_event_loop().time()
+
     def _is_valid_for_analysis(self, message: dict[str, Any]) -> bool:
         """
         Checks if a message from the queue is valid for sentiment analysis.
@@ -38,8 +42,7 @@ class MessageWorker:
         """
         if message.get("chat", {}).get("type") == "ChatType.PRIVATE":
             return False
-        
-        # The correct field for message type from pyrofork serialization is "_"
+
         if message.get("_") != "Message":
             return False
 
@@ -51,6 +54,7 @@ class MessageWorker:
         if content.startswith("/"):
             return False
         return True
+
     async def connect(self):
         """Initialize connections to Redis and MongoDB with a retry mechanism."""
         self.redis_client = get_redis_client()
@@ -91,12 +95,14 @@ class MessageWorker:
                 await asyncio.sleep(
                     settings.connect_retry_delay_seconds * (attempt + 1)
                 )
+
     async def disconnect(self):
         """Close all connections."""
         if self.redis_client:
             await self.redis_client.close()
         if self.mongo_client:
             self.mongo_client.close()
+
     async def process_batch(self, messages: list[dict[str, Any]]) -> bool:
         """Save a batch of messages and enqueue valid ones for sentiment analysis."""
         if not messages or not self.repository:
@@ -135,6 +141,7 @@ class MessageWorker:
             except Exception as e:
                 log.error("Batch save failed unexpectedly", error=str(e), exc_info=True)
                 return False
+
     async def process_message(self, message_data: str):
         """Process a single message from the queue."""
         try:
@@ -169,6 +176,7 @@ class MessageWorker:
             self.logger.error("Failed to parse message JSON", message_data=message_data)
         except Exception:
             self.logger.exception("Error processing message")
+
     async def send_current_batch(self):
         """Send the current batch to the repository."""
         if not self.processing_batch:
@@ -179,6 +187,7 @@ class MessageWorker:
             self.last_batch_sent_time = asyncio.get_event_loop().time()
         else:
             await self.handle_failed_batch(batch_to_send)
+
     async def handle_failed_batch(self, batch: list[dict[str, Any]]):
         """Handle failed batch with retries and dead letter queue."""
         for message in batch:
@@ -202,6 +211,7 @@ class MessageWorker:
                 log.error(
                     "Failed to handle failed message", error=str(e), exc_info=True
                 )
+
     async def run(self):
         """Main worker loop."""
         try:
@@ -251,6 +261,8 @@ class MessageWorker:
                 await self.send_current_batch()
             await self.disconnect()
             self.logger.info("Worker has shut down")
+
+
 async def main():
     """Main entry point."""
     setup_structlog(json_logs=settings.json_logs)
@@ -264,5 +276,7 @@ async def main():
     except Exception as e:
         logger.fatal("Worker failed critically", error=str(e))
         sys.exit(1)
+
+
 if __name__ == "__main__":
     asyncio.run(main())

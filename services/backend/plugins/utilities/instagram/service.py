@@ -151,12 +151,10 @@ class InstagramService:
         return [tag.strip() for tag in re.findall(r"#(\w+)", caption)]
 
 
-# New dependency provider for this plugin's config
 def get_instagram_plugin_config() -> InstagramConfig:
     return instagram_settings
 
 
-# The main service provider now injects the plugin's config
 def get_instagram_service(
     config: Annotated[InstagramConfig, Depends(get_instagram_plugin_config)],
 ) -> InstagramService:

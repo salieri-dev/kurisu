@@ -14,8 +14,6 @@ httpx = {extras = ["socks"], version = "^0.28.1"}
 redis = "^6.4.0"
 pydantic = "^2.5.3"
 pydantic-settings = "^2.1.0"
-
-# This adds the crucial local library dependency
 kurisu-core = { path = "../../packages/kurisu_core", develop = true }
 opentelemetry-api = "^1.36.0"
 opentelemetry-sdk = "^1.36.0"

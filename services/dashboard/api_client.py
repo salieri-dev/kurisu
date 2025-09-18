@@ -1,4 +1,3 @@
-# Path: dashboard/api_client.py
 import json
 from typing import Any, List
 
@@ -20,11 +19,10 @@ class BackendClient:
         return response.json()
 
     async def set_config(self, key: str, value: Any, description: str):
-        # The value from the form is a string, we try to parse it as JSON
         try:
             value_parsed = json.loads(value)
         except json.JSONDecodeError:
-            value_parsed = value  # Keep as string if not valid JSON
+            value_parsed = value
 
         payload = {"key": key, "value": value_parsed, "description": description}
         response = await self._client.post("/core/config", json=payload)

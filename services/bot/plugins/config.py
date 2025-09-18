@@ -1,5 +1,3 @@
-# path: bot/plugins/config.py
-
 import structlog
 from pyrogram import Client, filters
 from pyrogram.enums import ChatMemberStatus, ChatType
@@ -29,13 +27,11 @@ async def get_and_reply_with_config(message: Message, prefix: str = "") -> None:
         )
         configs = response.get("configs", {})
 
-        # --- Fetch all config values with safe defaults ---
         nsfw_enabled = configs.get("nsfw_enabled", False)
         transcribe_enabled = configs.get("transcribe_enabled", True)
         summary_enabled = configs.get("summary_enabled", False)
         summary_roast_enabled = configs.get("summary_roast_enabled", True)
 
-        # --- Format status strings ---
         nsfw_status = "✅ Включен" if nsfw_enabled else "❌ Отключен"
         transcribe_status = "✅ Включена" if transcribe_enabled else "❌ Отключена"
         summary_status = "✅ Включена" if summary_enabled else "❌ Отключена"

@@ -2,7 +2,7 @@ import ssl
 import httpx
 from typing import Dict
 
-# Constants for emulating a modern Firefox browser
+
 HEADERS_FIREFOX_140 = (
     (
         "User-Agent",

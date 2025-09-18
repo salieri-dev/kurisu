@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Resolve-Path (Join-Path $ScriptDir "..")
-$BackendDir = Join-Path $ProjectRoot "backend"
+$BackendDir = Join-Path $ProjectRoot "services/backend"
 
 Set-Location -Path $ProjectRoot
 Write-Host "Executing commands from Project Root: $ProjectRoot"

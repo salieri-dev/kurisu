@@ -1,5 +1,3 @@
-# sentiment_worker/ml/topics.py
-
 import json
 from pathlib import Path
 from typing import Dict, List

@@ -1,5 +1,3 @@
-# sentiment_worker/ml/coordinator.py
-
 from typing import Dict, List, Any
 import torch
 import structlog

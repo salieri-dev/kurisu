@@ -14,7 +14,7 @@ from .models import AlbumResponse, NhentaiGallery, Tag, Title, Images
 
 log = get_logger(__name__)
 
-# --- Constants for secure, browser-like requests ---
+
 HEADERS_FIREFOX = {
     "User-Agent": f"Mozilla/5.0 ({platform.system()} NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -29,7 +29,6 @@ CIPHERS_FIREFOX = (
 )
 
 
-# --- Service Implementation ---
 class NhentaiService:
     BASE_URL = "https://nhentai.net"
     IMAGE_URL_TEMPLATE = "https://i.nhentai.net/galleries/{media_id}/{page_num}.{ext}"
@@ -101,7 +100,7 @@ class NhentaiService:
         return self._parse_gallery_data(data)
 
     async def get_random_gallery(self) -> NhentaiGallery:
-        for _ in range(10):  # Try up to 10 times to find a valid random gallery
+        for _ in range(10):
             random_id = random.randint(1, self.MAX_RANDOM_ID)
             try:
                 return await self.get_gallery(random_id)

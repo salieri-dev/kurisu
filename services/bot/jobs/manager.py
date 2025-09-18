@@ -1,5 +1,3 @@
-# path: bot/jobs/manager.py
-
 from structlog import get_logger
 from pyrogram import Client
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -22,7 +20,6 @@ class ScheduledJobsManager:
         self.client = client
         self.scheduler = AsyncIOScheduler(timezone=str(MOSCOW_TZ))
 
-        # --- Job 1: Daily Chat Profile Reconciliation ---
         self.reconciliation_job = ActiveChatsReconciliationJob(client)
         self.scheduler.add_job(
             self.reconciliation_job.reconcile_all_chats,
@@ -31,11 +28,10 @@ class ScheduledJobsManager:
             name="Daily Chat Profile Reconciliation",
         )
 
-        # --- Job 2: Daily Chat Summary Generation ---
         self.summary_job = SummaryJob(client)
         self.scheduler.add_job(
             self.summary_job.run_daily_summary,
-            CronTrigger(hour=10, minute=0, timezone=MOSCOW_TZ),  # Runs at 10:00 AM MSK
+            CronTrigger(hour=10, minute=0, timezone=MOSCOW_TZ),
             id="daily_summary_job",
             name="Daily Chat Summary Generation",
         )

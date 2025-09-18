@@ -58,7 +58,6 @@ async def get_redis_client(request: Request) -> redis.Redis:
     return request.app.state.redis
 
 
-# Cache for lazy-loaded clients
 _llm_client = None
 _fal_client = None
 

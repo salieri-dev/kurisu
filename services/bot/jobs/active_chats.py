@@ -1,5 +1,3 @@
-# path: bot/jobs/active_chats.py
-
 import asyncio
 from structlog import get_logger
 from pyrogram import Client
@@ -32,7 +30,6 @@ class ActiveChatsReconciliationJob:
             profile_updates = await asyncio.gather(*tasks)
             valid_updates = [update for update in profile_updates if update is not None]
 
-            # Send updates to the backend in batches to avoid large requests
             batch_size = 100
             for i in range(0, len(valid_updates), batch_size):
                 batch = valid_updates[i : i + batch_size]

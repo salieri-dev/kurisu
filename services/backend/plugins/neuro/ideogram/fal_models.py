@@ -1,5 +1,3 @@
-# --- MODIFIED ---
-
 """Pydantic models representing the INPUT schema for the fal-ai/ideogram/v3 API."""
 
 from enum import Enum

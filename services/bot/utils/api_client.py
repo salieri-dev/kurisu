@@ -23,7 +23,7 @@ class BackendClient:
         self._client = httpx.AsyncClient(
             base_url=base_url,
             headers={"X-API-Key": api_key} if api_key else {},
-            timeout=180.0,  # Increased timeout for image processing
+            timeout=180.0,
         )
 
     async def _prepare_headers(

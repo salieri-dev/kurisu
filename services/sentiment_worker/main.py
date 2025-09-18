@@ -10,9 +10,12 @@ import redis.asyncio as redis
 from kurisu_core.logging_config import setup_structlog
 from kurisu_core.tracing import setup_tracing
 from ml.coordinator import ModelCoordinator
+
 setup_structlog(json_logs=settings.json_logs)
 setup_tracing(service_name=settings.service_name)
 logger = structlog.get_logger(__name__)
+
+
 class SentimentWorker:
     """
     Worker that consumes message data from a Redis queue, performs sentiment
@@ -20,6 +23,7 @@ class SentimentWorker:
     On startup, it launches a background task to find and enqueue any
     previously unanalyzed messages from the database, using a Redis Set for deduplication.
     """
+
     def __init__(self):
         self.redis_client = None
         self.mongo_client = None
@@ -30,9 +34,10 @@ class SentimentWorker:
             device_str=settings.model_device,
         )
         self.queue_name = "sentiment_analysis_queue"
-        self.dedupe_set_name = "sentiment_jobs_in_queue" # Key for our Redis Set
+        self.dedupe_set_name = "sentiment_jobs_in_queue"
         self.is_running = True
         self.SCAN_ENQUEUE_BATCH_SIZE = 1000
+
     async def connect(self):
         """Initializes connections to Redis and MongoDB."""
         self.redis_client = redis.from_url(
@@ -44,6 +49,7 @@ class SentimentWorker:
         db = self.mongo_client[settings.mongodb_database]
         self.messages_collection = db.messages
         logger.info("Connections to Redis and MongoDB established.")
+
     async def disconnect(self):
         """Closes all active connections."""
         if self.redis_client:
@@ -51,18 +57,16 @@ class SentimentWorker:
         if self.mongo_client:
             self.mongo_client.close()
         logger.info("Connections closed.")
+
     async def enqueue_missing_analyses(self):
         """
         Scans for messages needing analysis in batches to avoid cursor timeouts and uses a Redis
         Set to prevent duplicate jobs from being added to the queue on restart.
         """
-        logger.info(
-            "Starting background scan to enqueue unanalyzed messages..."
-        )
+        logger.info("Starting background scan to enqueue unanalyzed messages...")
         total_enqueued = 0
         try:
             while self.is_running:
-                # This pipeline now fetches a limited batch in each loop iteration
                 pipeline = [
                     {
                         "$match": {
@@ -70,55 +74,66 @@ class SentimentWorker:
                                 {"chat.type": {"$ne": "ChatType.PRIVATE"}},
                                 {"_": "Message"},
                                 {"sentiment": {"$exists": False}},
-                                {"$or": [
-                                    {"text": {"$exists": True, "$ne": ""}},
-                                    {"caption": {"$exists": True, "$ne": ""}},
-                                ]},
-                                {"$or": [
-                                    {"from_user.is_bot": {"$exists": False}},
-                                    {"from_user.is_bot": False},
-                                ]},
+                                {
+                                    "$or": [
+                                        {"text": {"$exists": True, "$ne": ""}},
+                                        {"caption": {"$exists": True, "$ne": ""}},
+                                    ]
+                                },
+                                {
+                                    "$or": [
+                                        {"from_user.is_bot": {"$exists": False}},
+                                        {"from_user.is_bot": False},
+                                    ]
+                                },
                             ]
                         }
                     },
-                    {"$addFields": {"message_content": {"$ifNull": ["$text", "$caption"]}}},
+                    {
+                        "$addFields": {
+                            "message_content": {"$ifNull": ["$text", "$caption"]}
+                        }
+                    },
                     {"$match": {"message_content": {"$not": {"$regex": "^/"}}}},
                     {"$project": {"_id": 1}},
-                    {"$limit": self.SCAN_ENQUEUE_BATCH_SIZE}
+                    {"$limit": self.SCAN_ENQUEUE_BATCH_SIZE},
                 ]
 
-                # The cursor is now short-lived and specific to this batch
                 cursor = self.messages_collection.aggregate(pipeline)
-                message_ids_to_process = [doc['_id'] async for doc in cursor]
+                message_ids_to_process = [doc["_id"] async for doc in cursor]
 
                 if not message_ids_to_process:
-                    logger.info("No more messages to enqueue. Background scan finished.")
-                    break # Exit the while loop
+                    logger.info(
+                        "No more messages to enqueue. Background scan finished."
+                    )
+                    break
 
-                # Check which of these IDs are not already in our dedupe set
                 pipe = self.redis_client.pipeline()
                 for msg_id in message_ids_to_process:
                     pipe.sismember(self.dedupe_set_name, str(msg_id))
                 is_member_results = await pipe.execute()
-                
+
                 new_ids_to_enqueue = [
-                    msg_id for msg_id, is_member in zip(message_ids_to_process, is_member_results) if not is_member
+                    msg_id
+                    for msg_id, is_member in zip(
+                        message_ids_to_process, is_member_results
+                    )
+                    if not is_member
                 ]
 
                 if not new_ids_to_enqueue:
-                    # All found messages were already queued, sleep and try again later
                     await asyncio.sleep(5)
                     continue
 
-                # Add the new, unique IDs to the deduplication set
-                await self.redis_client.sadd(self.dedupe_set_name, *[str(mid) for mid in new_ids_to_enqueue])
+                await self.redis_client.sadd(
+                    self.dedupe_set_name, *[str(mid) for mid in new_ids_to_enqueue]
+                )
 
-                # Now, fetch the content only for the new IDs
                 content_cursor = self.messages_collection.find(
                     {"_id": {"$in": new_ids_to_enqueue}},
-                    {"_id": 1, "text": 1, "caption": 1}
+                    {"_id": 1, "text": 1, "caption": 1},
                 )
-                
+
                 item_batch_json = []
                 async for doc in content_cursor:
                     item_to_enqueue = {
@@ -135,8 +150,8 @@ class SentimentWorker:
                         batch_size=len(item_batch_json),
                         total_enqueued=total_enqueued,
                     )
-                
-                await asyncio.sleep(0.5) # Small delay to be polite to the DB and event loop
+
+                await asyncio.sleep(0.5)
 
         except Exception as e:
             logger.error(
@@ -144,8 +159,10 @@ class SentimentWorker:
                 error=str(e),
                 exc_info=True,
             )
-        
-        logger.info("Background scan process has ended.", total_messages_enqueued=total_enqueued)
+
+        logger.info(
+            "Background scan process has ended.", total_messages_enqueued=total_enqueued
+        )
 
     async def process_batch(self, batch_data: List[str]):
         """
@@ -157,9 +174,11 @@ class SentimentWorker:
         try:
             items = [json.loads(data) for data in batch_data]
         except json.JSONDecodeError:
-            log.error("Failed to parse JSON from batch data, skipping.", data=batch_data)
+            log.error(
+                "Failed to parse JSON from batch data, skipping.", data=batch_data
+            )
             return
-            
+
         if not items:
             log.warning("Batch is empty after parsing.")
             return
@@ -167,7 +186,7 @@ class SentimentWorker:
         items.sort(key=lambda x: len(x.get("text", "")))
         texts_to_analyze = [item.get("text", "") for item in items]
         analysis_results = self.model_coordinator.analyze_batch(texts_to_analyze)
-        
+
         operations = []
         processed_ids = []
         for item, analysis in zip(items, analysis_results):
@@ -184,13 +203,17 @@ class SentimentWorker:
             processed_ids.append(item["_id"])
 
         if operations:
-            result = await self.messages_collection.bulk_write(operations, ordered=False)
+            result = await self.messages_collection.bulk_write(
+                operations, ordered=False
+            )
             log.info("Batch updated in MongoDB.", modified_count=result.modified_count)
-            
-            # After successful DB update, remove the IDs from the dedupe set.
+
             if processed_ids:
                 await self.redis_client.srem(self.dedupe_set_name, *processed_ids)
-                log.info("Removed processed IDs from deduplication set.", count=len(processed_ids))
+                log.info(
+                    "Removed processed IDs from deduplication set.",
+                    count=len(processed_ids),
+                )
 
     async def run(self):
         """The main worker loop."""
@@ -212,11 +235,14 @@ class SentimentWorker:
             except Exception:
                 log.exception("Error in worker loop, continuing...")
                 await asyncio.sleep(5)
+
     async def shutdown(self):
         """Initiates a graceful shutdown of the worker."""
         self.is_running = False
         logger.info("Shutting down worker...")
         await self.disconnect()
+
+
 async def main():
     """Entry point for the sentiment worker application."""
     worker = SentimentWorker()
@@ -226,5 +252,7 @@ async def main():
         logger.info("Keyboard interrupt received.")
     finally:
         await worker.shutdown()
+
+
 if __name__ == "__main__":
     asyncio.run(main())

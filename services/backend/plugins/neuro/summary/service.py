@@ -1,5 +1,3 @@
-# path: backend/plugins/neuro/summary/service.py
-
 from datetime import datetime
 import os
 from typing import Annotated, Dict
@@ -51,10 +49,9 @@ class SummaryService:
                 name += f" {last_name}"
 
             content = msg.get("text") or msg.get("caption", "[MEDIA]")
-            content = content.replace("\n", " ")  # Keep summaries clean
+            content = content.replace("\n", " ")
             return f"[{local_time}] [{msg.get('id')}] {name}: {content}"
         except Exception:
-            # Silently ignore formatting errors for individual messages
             return ""
 
     def _format_summary_text(
@@ -103,7 +100,6 @@ class SummaryService:
         except ValueError:
             raise BadRequestError("Invalid date format. Please use YYYY-MM-DD.")
 
-        # --- FIX: Use get_or_create for robust configuration loading ---
         min_messages = await self.config.get_or_create(
             "neuro/summary.min_messages_threshold",
             default=60,
@@ -115,7 +111,6 @@ class SummaryService:
             description="LLM model used for chat summarization.",
         )
 
-        # Load the default prompt from the file
         try:
             with open(DEFAULT_PROMPT_PATH, "r", encoding="utf-8") as f:
                 default_prompt_text = f.read()
@@ -133,24 +128,19 @@ class SummaryService:
             description="The system prompt for the chat summarization LLM.",
         )
 
-        # We can fetch chat-specific config directly here too
         roast_enabled = await self.config.get(
             f"chat_config:{chat_id}:summary_roast_enabled", default=True
         )
 
-        # 2. Fetch messages
         messages = await self.msg_repo.get_messages_for_summary(chat_id, target_date)
         if len(messages) < min_messages:
             raise BadRequestError(
                 f"Not enough messages to generate a summary. Found {len(messages)}, need {min_messages}."
             )
 
-        # ... (rest of the method is unchanged)
-        # 3. Format chat log for LLM
         chat_log_lines = [self._format_message_for_log(msg) for msg in messages]
         chat_log = "\n".join(filter(None, chat_log_lines))
 
-        # 4. Call LLM for summarization
         try:
             llm_response = await self.llm.structured_chat_completion(
                 messages=[
@@ -166,7 +156,6 @@ class SummaryService:
                 "The language model failed to produce a valid summary."
             ) from e
 
-        # 5. Store summary in DB
         summary_doc = SummaryDB(
             chat_id=chat_id,
             chat_title=chat_title,
@@ -178,7 +167,6 @@ class SummaryService:
         )
         summary_id = await self.summary_repo.store_summary(summary_doc)
 
-        # 6. Format response for the bot
         formatted_text = self._format_summary_text(
             llm_response, chat_id, chat_title, target_date, roast_enabled
         )

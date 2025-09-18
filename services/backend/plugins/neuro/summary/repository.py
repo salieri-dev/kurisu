@@ -1,5 +1,3 @@
-# path: backend/plugins/neuro/summary/repository.py
-
 from datetime import datetime, time
 from typing import Annotated, Any, Dict, List
 
@@ -81,9 +79,6 @@ class SummaryRepository:
                 "DB error storing summary", error=str(e), chat_id=summary_data.chat_id
             )
             raise ServiceError("Database error while storing summary.") from e
-
-
-# --- Dependency Injection ---
 
 
 async def get_summaries_collection(

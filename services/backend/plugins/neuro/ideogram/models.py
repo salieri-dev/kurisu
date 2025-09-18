@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field, HttpUrl
 class IdeogramRequest(BaseModel):
     prompt: str = Field(..., min_length=3, max_length=500)
     negative_prompt: str | None = None
-    # Add other parameters like style if you wish to support them
 
 
 class IdeogramResponse(BaseModel):

@@ -27,7 +27,7 @@ class ConfigService:
         self.redis = redis_client
         self._current_ttl: int | None = None
         self._ttl_last_refreshed: float = 0
-        self._ttl_refresh_interval: int = 10  # Refresh TTL from Redis every 10s
+        self._ttl_refresh_interval: int = 10
 
     async def _get_current_ttl(self) -> int:
         """

@@ -101,7 +101,7 @@ class FalAIClient:
             raise FalAIError(
                 "Fal.run returned an invalid 'COMPLETED' response structure."
             ) from e
-        # CORRECTED: Use the full path to the exception class
+
         except fal_client.client.FalClientError as e:
             log.error("Fal.run client error during image generation", error=str(e))
             raise FalAIError(f"Fal.run API error: {e}") from e

@@ -11,10 +11,8 @@ class WorkerConfig(BaseSettings):
     mongodb_url: MongoDsn = Field(..., alias="MONGODB_URL")
     mongodb_database: str = Field(..., alias="MONGO_DATABASE")
 
-    sentiment_model: str = Field(alias="SENTIMENT_MODEL"
-    )
-    sensitive_topics_model: str = Field(alias="SENSITIVE_TOPICS_MODEL"
-    )
+    sentiment_model: str = Field(alias="SENTIMENT_MODEL")
+    sensitive_topics_model: str = Field(alias="SENSITIVE_TOPICS_MODEL")
 
     batch_size: int = Field(default=64, alias="SENTIMENT_BATCH_SIZE")
     model_device: str = Field(default="gpu", alias="SENTIMENT_MODEL_DEVICE")

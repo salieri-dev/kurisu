@@ -11,13 +11,17 @@ from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from plugins import init_plugins
 from prometheus_fastapi_instrumentator import Instrumentator
 from pymongo.errors import ConnectionFailure
+from utils.database_setup import ensure_indexes
 from utils.exceptions import ServiceError
+from utils.fal_client import FalAIClient
+from utils.llm_client import LLMClient
 from utils.middleware import api_key_middleware, structured_logging_middleware
 from utils.redis_client import close_redis_client, init_redis_client
 
 from kurisu_core.logging_config import setup_structlog
 from kurisu_core.tracing import setup_tracing
 
+EXCLUDED_PLUGINS = []
 
 setup_structlog(json_logs=settings.json_logs)
 logger = structlog.get_logger(__name__)
@@ -40,17 +44,26 @@ async def lifespan(app: FastAPI):
         app.state.mongo_client = AsyncIOMotorClient(str(settings.mongodb_url))
         await app.state.mongo_client.admin.command("ping")
         logger.info("Successfully connected to MongoDB.")
+
         db = app.state.mongo_client[settings.mongodb_database]
-
-        # Initialize plugins and pass them the DB connection
-        await init_plugins(app, db)
-
+        await ensure_indexes(db)
     except ConnectionFailure as e:
         logger.fatal("Failed to connect to MongoDB on startup.", error=str(e))
         raise
 
     app.state.redis = await init_redis_client()
     logger.info("Successfully connected to Redis.")
+
+    app.state.llm_client = LLMClient(
+        api_key=settings.llm_api_key,
+        base_url=str(settings.llm_base_url),
+        http_referer=settings.llm_http_referer,
+        x_title=settings.llm_x_title,
+    )
+    logger.info("LLM Client initialized.")
+
+    app.state.fal_client = FalAIClient()
+    logger.info("Fal.ai Client initialized.")
 
     yield
 
@@ -112,6 +125,8 @@ async def generic_exception_handler(request: Request, exc: Exception):
 
 app.middleware("http")(api_key_middleware)
 app.middleware("http")(structured_logging_middleware)
+
+init_plugins(app, excluded_plugins=EXCLUDED_PLUGINS)
 
 
 @app.get("/health", tags=["Health Check"], include_in_schema=False)

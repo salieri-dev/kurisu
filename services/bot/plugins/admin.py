@@ -1,5 +1,3 @@
-# path: bot/plugins/admin.py
-
 import json
 import shlex
 from datetime import datetime, timedelta
@@ -17,7 +15,7 @@ log = get_logger(__name__)
 MOSCOW_TZ = pytz.timezone("Europe/Moscow")
 
 
-@Client.on_message(filters.command("stats") & filters.private)
+@Client.on_message(filters.command("stats") & filters.private, group=1)
 @owner_only
 @handle_api_errors
 async def stats_command(client: Client, message: Message):
@@ -58,7 +56,7 @@ async def stats_command(client: Client, message: Message):
         await message.reply_text(part, quote=True)
 
 
-@Client.on_message(filters.command("get_media") & filters.private)
+@Client.on_message(filters.command("get_media") & filters.private, group=1)
 @owner_only
 async def get_media_command(client: Client, message: Message):
     """Sends a media file by its file_id for debugging."""
@@ -79,7 +77,7 @@ async def get_media_command(client: Client, message: Message):
         await message.reply(f"Error sending media: {e}")
 
 
-@Client.on_message(filters.command("debug") & filters.private)
+@Client.on_message(filters.command("debug") & filters.private, group=1)
 @owner_only
 @handle_api_errors
 async def debug_command(client: Client, message: Message):
@@ -131,7 +129,6 @@ async def debug_command(client: Client, message: Message):
 
         chat_id_str = args[0]
         try:
-            # Validate it's an integer-like string, but use the original string/int for Pyrogram
             chat_id = int(chat_id_str)
         except ValueError:
             await message.reply("Invalid Chat ID format.")
@@ -149,13 +146,13 @@ async def debug_command(client: Client, message: Message):
         wait_msg = await message.reply(
             f"▶️ **Requesting summary for chat `{chat_id}` for `{target_day}`...**"
         )
-        message.wait_msg = wait_msg  # For the error decorator
+        message.wait_msg = wait_msg
 
         try:
             target_chat = await client.get_chat(chat_id)
 
             payload = {
-                "chat_id": target_chat.id,  # Use the validated ID from the chat object
+                "chat_id": target_chat.id,
                 "chat_title": target_chat.title or "Unknown Chat",
                 "date": date_to_summarize.strftime("%Y-%m-%d"),
             }
@@ -169,8 +166,6 @@ async def debug_command(client: Client, message: Message):
             for part in split_message(response["formatted_text"]):
                 await message.reply_text(part, disable_web_page_preview=True)
         except Exception as e:
-            # The @handle_api_errors decorator will catch APIError and other general exceptions
-            # This specific log helps debug if the decorator fails to catch something.
             log.error(
                 "Manual summary generation failed inside handler",
                 error=str(e),

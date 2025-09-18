@@ -16,8 +16,6 @@ scikit-learn = "^1.7.1"
 pandas = "^2.3.2"
 pydantic = "^2.11.7"
 pydantic-settings = "^2.10.1"
-
-# Add the crucial local library dependency
 kurisu-core = { path = "../../packages/kurisu_core", develop = true }
 opentelemetry-api = "^1.36.0"
 opentelemetry-sdk = "^1.36.0"

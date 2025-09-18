@@ -1,5 +1,3 @@
-# path: backend/plugins/neuro/summary/endpoint.py
-
 from typing import Annotated
 from fastapi import APIRouter, Depends
 
@@ -19,8 +17,6 @@ router = APIRouter()
 async def generate_summary_endpoint(
     request: SummaryRequest,
     service: Annotated[SummaryService, Depends(get_summary_service)],
-    # require_telegram_headers is not strictly needed here as the bot job is the primary user,
-    # but it's good practice for manual triggers and logging context.
     headers: Annotated[dict, Depends(require_telegram_headers)],
 ):
     """

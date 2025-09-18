@@ -1,13 +1,15 @@
+volumes:
+  hf_cache:
+
 services:
   backend:
     build:
       context: . 
       dockerfile: services/backend/Dockerfile
     volumes:
-      - ./backend:/opt/kurisu/backend
-      - ./kurisu_core:/opt/kurisu/kurisu_core
-      - ${ALTGIRLS_ASSETS_PATH:-./assets/altgirls}:/opt/kurisu/backend/plugins/fun/altgirls/assets 
-      - ${THREADS_ASSETS_PATH:-./assets/threads}:/opt/kurisu/backend/plugins/neuro/threads/assets
+      - ${ALTGIRLS_ASSETS_PATH:-./assets/altgirls}:/app/services/kurisu/backend/plugins/fun/altgirls/assets 
+      - ${THREADS_ASSETS_PATH:-./assets/threads}:/app/services/backend/plugins/neuro/threads/assets
+      - ./services/backend:/app/services/backend
     ports:
       - "${TAILSCALE_IP:-127.0.0.1}:8000:8000"
     restart: unless-stopped
@@ -36,9 +38,6 @@ services:
     build:
       context: . 
       dockerfile: services/bot/Dockerfile
-    volumes:
-      - ./bot:/opt/kurisu/bot
-      - ./kurisu_core:/opt/kurisu/kurisu_core
     restart: unless-stopped
     networks:
       - kurisu
@@ -59,9 +58,6 @@ services:
     build:
       context: . 
       dockerfile: services/worker/Dockerfile
-    volumes:
-      - ./worker:/opt/kurisu/worker
-      - ./kurisu_core:/opt/kurisu/kurisu_core
     restart: unless-stopped
     networks:
       - kurisu
@@ -95,8 +91,7 @@ services:
               count: 1
               capabilities: [gpu]
     volumes:
-      - ./sentiment_worker:/opt/kurisu/sentiment_worker
-      - ./kurisu_core:/opt/kurisu/kurisu_core
+      - hf_cache:/opt/kurisu/cache 
     restart: unless-stopped
     networks:
       - kurisu
@@ -119,9 +114,6 @@ services:
     build:
       context: .
       dockerfile: services/dashboard/Dockerfile
-    volumes:
-      - ./dashboard:/opt/kurisu/dashboard
-      - ./kurisu_core:/opt/kurisu/kurisu_core
     ports:
       - "${TAILSCALE_IP:-127.0.0.1}:8001:8001"
     restart: unless-stopped
