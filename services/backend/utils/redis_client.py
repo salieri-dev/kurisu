@@ -1,10 +1,10 @@
 import redis.asyncio as redis
-from config import settings
+
 
 _redis_client: redis.Redis | None = None
 
 
-async def init_redis_client() -> redis.Redis:
+async def init_redis_client(settings) -> redis.Redis:
     """
     Creates and initializes the Redis client connection pool.
     This function is called once during the application's startup lifespan.
@@ -15,7 +15,6 @@ async def init_redis_client() -> redis.Redis:
         password=settings.redis_password,
         decode_responses=True,
     )
-
     await _redis_client.ping()
     return _redis_client
 

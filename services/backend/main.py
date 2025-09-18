@@ -1,30 +1,34 @@
-from contextlib import asynccontextmanager
-
+import os
 import structlog
+
+from kurisu_core.logging_config import setup_structlog
+
+JSON_LOGS_ENABLED = os.getenv("JSON_LOGS", "false").lower() in ("true", "1", "t")
+setup_structlog(json_logs=JSON_LOGS_ENABLED)
+
+logger = structlog.get_logger(__name__)
+
+from contextlib import asynccontextmanager
 import structlog.contextvars
-from config import settings
+from plugins import get_plugin_manager
+from config import AppConfig
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
-from plugins import init_plugins
 from prometheus_fastapi_instrumentator import Instrumentator
 from pymongo.errors import ConnectionFailure
+from pydantic import create_model
 from utils.database_setup import ensure_indexes
 from utils.exceptions import ServiceError
 from utils.fal_client import FalAIClient
 from utils.llm_client import LLMClient
 from utils.middleware import api_key_middleware, structured_logging_middleware
 from utils.redis_client import close_redis_client, init_redis_client
-
-from kurisu_core.logging_config import setup_structlog
 from kurisu_core.tracing import setup_tracing
 
 EXCLUDED_PLUGINS = []
-
-setup_structlog(json_logs=settings.json_logs)
-logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
@@ -33,44 +37,61 @@ async def lifespan(app: FastAPI):
     Manage the application's lifespan.
     Connects to all required services on startup and gracefully disconnects on shutdown.
     """
-    setup_tracing(service_name=settings.service_name)
+    logger.info("Initializing plugin manager and discovering plugins...")
+    plugin_manager = get_plugin_manager(excluded_plugins=EXCLUDED_PLUGINS)
+
+    plugin_config_models = plugin_manager.get_config_models()
+
+    all_bases = (AppConfig, *plugin_config_models)
+    CombinedSettings = create_model("CombinedSettings", __base__=all_bases)
+    try:
+        app.state.settings = CombinedSettings()
+        logger.info(
+            "Successfully loaded combined application and plugin configuration."
+        )
+    except Exception as e:
+        logger.fatal(
+            "Failed to load combined configuration from environment.", error=str(e)
+        )
+        raise
+
+    setup_tracing(service_name=app.state.settings.service_name)
     HTTPXClientInstrumentor().instrument()
-    logger.info("Application starting up...", service=settings.service_name)
+    logger.info("Application starting up...", service=app.state.settings.service_name)
 
     instrumentator.expose(app)
     logger.info("Prometheus metrics endpoint exposed at /metrics.")
 
     try:
-        app.state.mongo_client = AsyncIOMotorClient(str(settings.mongodb_url))
+        app.state.mongo_client = AsyncIOMotorClient(str(app.state.settings.mongodb_url))
         await app.state.mongo_client.admin.command("ping")
         logger.info("Successfully connected to MongoDB.")
-
-        db = app.state.mongo_client[settings.mongodb_database]
+        db = app.state.mongo_client[app.state.settings.mongodb_database]
         await ensure_indexes(db)
     except ConnectionFailure as e:
         logger.fatal("Failed to connect to MongoDB on startup.", error=str(e))
         raise
 
-    app.state.redis = await init_redis_client()
+    app.state.redis = await init_redis_client(app.state.settings)
     logger.info("Successfully connected to Redis.")
 
     app.state.llm_client = LLMClient(
-        api_key=settings.llm_api_key,
-        base_url=str(settings.llm_base_url),
-        http_referer=settings.llm_http_referer,
-        x_title=settings.llm_x_title,
+        api_key=app.state.settings.llm_api_key,
+        base_url=str(app.state.settings.llm_base_url),
+        http_referer=app.state.settings.llm_http_referer,
+        x_title=app.state.settings.llm_x_title,
     )
     logger.info("LLM Client initialized.")
-
     app.state.fal_client = FalAIClient()
     logger.info("Fal.ai Client initialized.")
+
+    plugin_manager.register_routers(app)
 
     yield
 
     logger.info("Application shutting down...")
     app.state.mongo_client.close()
     logger.info("MongoDB connection closed.")
-
     await close_redis_client()
     logger.info("Redis connection closed.")
 
@@ -83,13 +104,11 @@ app = FastAPI(
 )
 
 FastAPIInstrumentor.instrument_app(app)
-
 instrumentator = Instrumentator(
     should_group_status_codes=True,
     should_ignore_untemplated=True,
     excluded_handlers=["/metrics", "/health"],
 )
-
 instrumentator.instrument(app, metric_namespace="kurisu", metric_subsystem="backend")
 
 
@@ -123,10 +142,12 @@ async def generic_exception_handler(request: Request, exc: Exception):
     )
 
 
-app.middleware("http")(api_key_middleware)
-app.middleware("http")(structured_logging_middleware)
+@app.middleware("http")
+async def api_key_middleware_wrapper(request: Request, call_next):
+    return await api_key_middleware(request, call_next, request.app.state.settings)
 
-init_plugins(app, excluded_plugins=EXCLUDED_PLUGINS)
+
+app.middleware("http")(structured_logging_middleware)
 
 
 @app.get("/health", tags=["Health Check"], include_in_schema=False)

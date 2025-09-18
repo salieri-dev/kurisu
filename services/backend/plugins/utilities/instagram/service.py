@@ -1,14 +1,10 @@
-"""Service layer for fetching Instagram media."""
-
 import re
 from datetime import UTC, datetime
-from typing import Any, Annotated
-
+from typing import Any
 import httpx
-from fastapi import Depends
-from .config import InstagramConfig, instagram_settings
-from plugins.utilities.instagram.models import InstagramMedia
+from .models import InstagramMedia
 from structlog import get_logger
+from .config import InstagramSettings
 
 logger = get_logger(__name__)
 
@@ -18,15 +14,15 @@ class InstagramService:
 
     API_URL: str = "https://www.instagram.com/graphql/query"
 
-    def __init__(self, config: InstagramConfig) -> None:
+    def __init__(self, config: InstagramSettings) -> None:
         """Initialize the InstagramService with a validated configuration object."""
-        self.headers: dict[str, str] = config.headers_json
-        self.cookies: dict[str, str] = config.cookies_json
-        self.payload: dict[str, Any] = config.payload_json
+        self.headers: dict[str, str] = config.INSTAGRAM_HEADERS_JSON
+        self.cookies: dict[str, str] = config.INSTAGRAM_COOKIES_JSON
+        self.payload: dict[str, Any] = config.INSTAGRAM_PAYLOAD_JSON
 
-        self.proxy_enabled = config.proxy_enabled
-        self.proxy_host = config.proxy_host
-        self.proxy_port = config.proxy_port
+        self.proxy_enabled = False
+        self.proxy_host = None
+        self.proxy_port = None
 
     async def get_instagram_media(self, media_id: str) -> InstagramMedia:
         """
@@ -35,17 +31,12 @@ class InstagramService:
         media_id_pattern = r"^[A-Za-z0-9_-]{7,39}$"
         if not re.match(media_id_pattern, media_id):
             raise ValueError(f"Invalid media_id format: {media_id}")
-
         self.payload["variables"]["shortcode"] = media_id
-
         client_kwargs = {
             "headers": self.headers,
             "cookies": self.cookies,
             "timeout": httpx.Timeout(60.0, connect=15.0),
         }
-
-        if self.proxy_enabled and self.proxy_host and self.proxy_port:
-            client_kwargs["proxy"] = f"socks5://{self.proxy_host}:{self.proxy_port}"
 
         logger.info("Attempting to fetch Instagram media", media_id=media_id)
         try:
@@ -72,7 +63,6 @@ class InstagramService:
                 exc_info=True,
             )
             raise ConnectionError(f"An unexpected error occurred: {str(e)}") from e
-
         return self._parse_media_json(json_data)
 
     def _parse_media_json(self, json_data: dict[str, Any]) -> InstagramMedia:
@@ -84,14 +74,12 @@ class InstagramService:
         )
         if not items or not isinstance(items, list) or len(items) == 0:
             raise ValueError("Media not found or unexpected API response structure")
-
         media = items[0]
         owner = media.get("owner", {})
         caption_node = media.get("caption")
         caption_text = (
             caption_node.get("text") if isinstance(caption_node, dict) else None
         )
-
         return InstagramMedia(
             id=media.get("code"),
             attachments=self._extract_candidates(media),
@@ -149,13 +137,3 @@ class InstagramService:
         if not caption:
             return []
         return [tag.strip() for tag in re.findall(r"#(\w+)", caption)]
-
-
-def get_instagram_plugin_config() -> InstagramConfig:
-    return instagram_settings
-
-
-def get_instagram_service(
-    config: Annotated[InstagramConfig, Depends(get_instagram_plugin_config)],
-) -> InstagramService:
-    return InstagramService(config=config)

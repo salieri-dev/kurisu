@@ -1,17 +1,14 @@
 from typing import Any
 from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
 
 
-class InstagramConfig(BaseSettings):
-    headers_json: dict[str, Any] = Field(..., alias="INSTAGRAM_HEADERS_JSON")
-    cookies_json: dict[str, Any] = Field(..., alias="INSTAGRAM_COOKIES_JSON")
-    payload_json: dict[str, Any] = Field(..., alias="INSTAGRAM_PAYLOAD_JSON")
-    proxy_enabled: bool = Field(default=False, alias="PROXY_ENABLED")
-    proxy_host: str | None = Field(default=None, alias="PROXY_HOST")
-    proxy_port: int | None = Field(default=None, alias="PROXY_PORT")
+class InstagramSettings(BaseSettings):
+    """Configuration specific to the Instagram plugin."""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    INSTAGRAM_HEADERS_JSON: dict[str, Any] = Field(..., alias="INSTAGRAM_HEADERS_JSON")
+    INSTAGRAM_COOKIES_JSON: dict[str, Any] = Field(..., alias="INSTAGRAM_COOKIES_JSON")
+    INSTAGRAM_PAYLOAD_JSON: dict[str, Any] = Field(..., alias="INSTAGRAM_PAYLOAD_JSON")
 
-
-instagram_settings = InstagramConfig()
+    class Config:
+        extra = "ignore"

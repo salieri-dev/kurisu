@@ -1,12 +1,27 @@
-"""API endpoints for the Instagram plugin."""
-
-from fastapi import APIRouter, HTTPException
-from plugins.utilities.instagram.models import InstagramMediaResponse
-from plugins.utilities.instagram.service import get_instagram_service
+from typing import Annotated
+from fastapi import APIRouter, HTTPException, Depends, Request
+from .models import InstagramMediaResponse
+from .service import InstagramService
+from .config import InstagramSettings
 from structlog import get_logger
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+
+def get_instagram_settings(request: Request) -> InstagramSettings:
+    """
+    Extracts and validates Instagram-specific settings from the global
+    application settings object.
+    """
+    return InstagramSettings.model_validate(request.app.state.settings)
+
+
+def get_instagram_service(
+    config: Annotated[InstagramSettings, Depends(get_instagram_settings)],
+) -> InstagramService:
+    """Instantiates the InstagramService with its required configuration."""
+    return InstagramService(config=config)
 
 
 @router.get(
@@ -15,13 +30,14 @@ logger = get_logger(__name__)
     summary="Fetch Instagram Media",
     description=("Fetches media from an Instagram post using its shortcode."),
 )
-async def get_instagram_media(media_code: str):
+async def get_instagram_media(
+    media_code: str,
+    service: Annotated[InstagramService, Depends(get_instagram_service)],
+):
     """
     Retrieves Instagram media by its shortcode.
-
     - **media_code**: The 11-character code from the Instagram URL (e.g., CqX-...).
     """
-    service = get_instagram_service()
     try:
         media = await service.get_instagram_media(media_code)
         return InstagramMediaResponse(media=media)

@@ -1,132 +1,143 @@
-"""Plugin system for autodiscovery and dynamic route registration."""
-
 import importlib
-import os
 from pathlib import Path
-from typing import Any
+import sys
+from typing import List, Type, Dict, Any
 
-from fastapi import APIRouter
-from structlog import get_logger
+import structlog
+from fastapi import FastAPI, APIRouter
+from pydantic_settings import BaseSettings
 
-logger = get_logger(__name__)
-
-
-class PluginBase:
-    """Base class for plugins to ensure consistent interface."""
-
-    def __init__(self, name: str, version: str = "1.0.0"):
-        self.name = name
-        self.version = version
-        self.router: APIRouter | None = None
-        self.metadata: dict[str, Any] = {}
-
-    def get_router(self) -> APIRouter | None:
-        """Get the plugin's router. Should be implemented by subclasses."""
-        return self.router
-
-    def get_metadata(self) -> dict[str, Any]:
-        """Get plugin metadata."""
-
-        default_metadata = {"name": self.name, "version": self.version}
-        default_metadata.update(self.metadata)
-        return default_metadata
+logger = structlog.get_logger(__name__)
 
 
-class PluginDiscovery:
-    """Handles automatic discovery and registration of plugins."""
+class PluginManager:
+    """Handles the discovery, configuration loading, and registration of all plugins."""
 
     def __init__(
-        self, plugins_dir: str = "plugins", excluded_plugins: list[str] | None = None
+        self, plugins_dir: str = "plugins", excluded_plugins: List[str] | None = None
     ):
-        self.plugins_dir = (
-            Path(__file__).parent if plugins_dir == "plugins" else Path(plugins_dir)
-        )
+        self.base_path = Path(__file__).parent.parent
+        self.plugins_dir = self.base_path / plugins_dir
         self.excluded_plugins = set(excluded_plugins or [])
-        self.discovered_plugins: dict[str, PluginBase] = {}
+        self.discovered_routers: Dict[str, APIRouter] = {}
+        self.discovered_config_models: Dict[str, Type[BaseSettings]] = {}
+        self._discovery_has_run = False
 
-    def discover_plugins(self) -> dict[str, PluginBase]:
-        """Discover all valid plugins in the plugins directory."""
+    def discover(self):
+        """
+        Discovers all plugin routers and configuration models.
+        This method is now idempotent and will only run its logic once.
+        """
+        if self._discovery_has_run:
+            logger.debug("Plugin discovery has already run. Skipping.")
+            return
+
         if not self.plugins_dir.exists():
-            logger.warning(f"Plugins directory {self.plugins_dir} does not exist")
-            return {}
+            logger.warning(f"Plugins directory {self.plugins_dir} does not exist.")
+            self._discovery_has_run = True
+            return
 
-        for endpoint_file in self.plugins_dir.rglob("**/endpoint.py"):
+        logger.info("Starting plugin discovery...")
+
+        for endpoint_file in self.plugins_dir.rglob("endpoint.py"):
             plugin_path = endpoint_file.parent
 
-            if (plugin_path / "endpoint.py").exists():
-                relative_path = plugin_path.relative_to(self.plugins_dir)
-                plugin_name = str(relative_path).replace(os.sep, "/")
+            if any(part.startswith(("_", ".")) for part in plugin_path.parts):
+                continue
 
-                if plugin_name in self.excluded_plugins:
-                    logger.info(f"Skipping excluded plugin: {plugin_name}")
-                    continue
+            relative_path = plugin_path.relative_to(self.plugins_dir)
+            plugin_name = str(relative_path).replace("\\", "/")
 
-                if any(part.startswith("_") for part in relative_path.parts):
-                    continue
+            if plugin_name in self.excluded_plugins:
+                logger.info(f"Skipping excluded plugin: {plugin_name}")
+                continue
 
-                plugin = self._load_plugin(plugin_path, plugin_name)
-                if plugin:
-                    self.discovered_plugins[plugin_name] = plugin
+            self._load_plugin_components(plugin_path, plugin_name)
 
-        return self.discovered_plugins
+        self._discovery_has_run = True
 
-    def _load_plugin(self, plugin_path: Path, plugin_name: str) -> PluginBase | None:
-        """Load a single plugin from its directory."""
+    def _get_module_path(self, file_path: Path) -> str:
+        """Constructs the fully-qualified Python module path."""
+        relative_to_root = file_path.relative_to(self.base_path.parent)
+        return ".".join(relative_to_root.with_suffix("").parts)
 
+    def _load_plugin_components(self, plugin_path: Path, plugin_name: str):
+        """Loads routers and configs from a single plugin directory."""
         endpoint_file = plugin_path / "endpoint.py"
-        if not endpoint_file.exists():
-            logger.warning(f"No endpoint.py found for plugin {plugin_name}")
+        if endpoint_file.exists():
+            module_path = self._get_module_path(endpoint_file)
+            router = self._import_attribute(module_path, "router")
+            if isinstance(router, APIRouter):
+                self.discovered_routers[plugin_name] = router
+                logger.debug(f"Discovered router for plugin: {plugin_name}")
+
+        config_file = plugin_path / "config.py"
+        if config_file.exists():
+            module_path = self._get_module_path(config_file)
+            module = self._import_module(module_path)
+            if module:
+                for item_name in dir(module):
+                    obj = getattr(module, item_name)
+                    if (
+                        isinstance(obj, type)
+                        and issubclass(obj, BaseSettings)
+                        and obj is not BaseSettings
+                    ):
+                        self.discovered_config_models[obj.__name__] = obj
+                        logger.debug(
+                            f"Discovered config model '{obj.__name__}' for plugin: {plugin_name}"
+                        )
+
+    def _import_module(self, module_path: str):
+        """Dynamically imports a module using its full path."""
+        try:
+            return importlib.import_module(module_path)
+        except ImportError as e:
+            logger.error(
+                f"Failed to import module '{module_path}'", error=str(e), exc_info=True
+            )
             return None
 
-        module_name = plugin_name.replace("/", ".")
-        module_path = f"plugins.{module_name}.endpoint"
-        module = importlib.import_module(module_path)
+    def _import_attribute(self, module_path: str, attribute_name: str) -> Any:
+        """Imports a specific attribute from a module."""
+        module = self._import_module(module_path)
+        if module:
+            return getattr(module, attribute_name, None)
+        return None
 
-        router = getattr(module, "router", None)
-        if not isinstance(router, APIRouter):
-            logger.warning(f"No valid router found in {plugin_name}/endpoint.py")
-            return None
+    def get_config_models(self) -> List[Type[BaseSettings]]:
+        """Returns a list of all discovered Pydantic settings models."""
+        return list(self.discovered_config_models.values())
 
-        plugin = PluginBase(plugin_name)
-        plugin.router = router
-        plugin.metadata = {}
+    def register_routers(self, app: FastAPI):
+        """Registers all discovered routers with the FastAPI application."""
+        if not self.discovered_routers:
+            logger.warning("No plugin routers were discovered to register.")
+            return
 
-        init_file = plugin_path / "__init__.py"
-        if init_file.exists():
-            module_name = plugin_name.replace("/", ".")
-            init_module_path = f"plugins.{module_name}"
-            init_module = importlib.import_module(init_module_path)
-            if hasattr(init_module, "PLUGIN_METADATA"):
-                plugin.metadata = getattr(init_module, "PLUGIN_METADATA", {})
-                plugin.version = plugin.metadata.get("version", plugin.version)
-
-        return plugin
-
-    def register_plugins(self, app) -> None:
-        """Register all discovered plugins with the FastAPI app."""
-        for plugin_name, plugin in self.discovered_plugins.items():
-            router = plugin.get_router()
-            if router:
-                app.include_router(
-                    router, prefix=f"/{plugin_name}", tags=[plugin_name.title()]
-                )
-                logger.info(f"Registered plugin routes for {plugin_name}")
-            else:
-                logger.warning(f"No router to register for plugin {plugin_name}")
+        for plugin_name, router in sorted(self.discovered_routers.items()):
+            prefix = f"/{plugin_name}"
+            tags = [plugin_name.replace("/", " ").title()]
+            app.include_router(router, prefix=prefix, tags=tags)
+            logger.info(
+                f"Registered plugin routes for '{plugin_name}' at prefix '{prefix}'"
+            )
 
 
-plugin_discovery = PluginDiscovery()
+_plugin_manager_instance: PluginManager | None = None
 
 
-def init_plugins(app, excluded_plugins: list[str] | None = None) -> None:
-    """Initialize plugin system and register all discovered plugins."""
-    global plugin_discovery
+def get_plugin_manager(excluded_plugins: List[str] | None = None) -> PluginManager:
+    """
+    Gets a singleton instance of the PluginManager and runs discovery.
+    """
+    global _plugin_manager_instance
+    if _plugin_manager_instance is None:
+        _plugin_manager_instance = PluginManager(excluded_plugins=excluded_plugins)
 
-    if excluded_plugins:
-        plugin_discovery = PluginDiscovery(excluded_plugins=excluded_plugins)
+        project_root = Path(__file__).parent.parent.parent
+        if str(project_root) not in sys.path:
+            sys.path.insert(0, str(project_root))
 
-    plugins = plugin_discovery.discover_plugins()
-
-    plugin_discovery.register_plugins(app)
-
-    logger.info(f"Plugin system initialized. Found {len(plugins)} plugins.")
+    _plugin_manager_instance.discover()
+    return _plugin_manager_instance
