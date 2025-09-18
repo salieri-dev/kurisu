@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "sentiment-worker"
+version = "0.1.0"
+description = "A dedicated worker for sentiment and topic analysis."
+authors = ["Your Name <you@example.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.14"
+motor = "^3.7.1"
+redis = "^6.4.0"
+structlog = "^25.4.0"
+python-dotenv = "^1.1.1"
+transformers = "^4.56.1"
+tqdm = "^4.67.1"
+scikit-learn = "^1.7.1"
+pandas = "^2.3.2"
+pydantic = "^2.11.7"
+pydantic-settings = "^2.10.1"
+
+# Add the crucial local library dependency
+kurisu-core = { path = "../../packages/kurisu_core", develop = true }
+opentelemetry-api = "^1.36.0"
+opentelemetry-sdk = "^1.36.0"
+opentelemetry-exporter-otlp-proto-grpc = "^1.36.0"
+sentencepiece = "^0.2.1"

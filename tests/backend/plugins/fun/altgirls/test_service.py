@@ -4,9 +4,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from backend.plugins.fun.altgirls.service import AltGirlsService
-from backend.utils.asset_service import AssetDetail
-from backend.utils.exceptions import NotFoundError
+from services.backend.plugins.fun.altgirls.service import AltGirlsService
+from services.backend import AssetDetail
+from services.backend import NotFoundError
 
 
 @pytest.fixture

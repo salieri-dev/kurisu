@@ -1,0 +1,108 @@
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./.data/prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-remote-write-receiver'
+    ports:
+      - "9090:9090"
+    networks:
+      - kurisu
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    networks:
+      - kurisu
+
+  loki:
+    image: grafana/loki:latest
+    restart: unless-stopped
+    volumes:
+      - ./config/loki/config.yml:/etc/loki/config.yml
+      - ./.data/loki:/loki
+    ports:
+      - "${TAILSCALE_IP:-127.0.0.1}:3100:3100"
+    command: -config.file=/etc/loki/config.yml
+    networks:
+      - kurisu
+
+  promtail:
+    image: grafana/promtail:latest
+    restart: unless-stopped
+    volumes:
+      - ./config/promtail/config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./.data/promtail:/var/lib/promtail/positions
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - kurisu
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    restart: unless-stopped
+    volumes:
+      - ./.data/grafana:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    networks:
+      - kurisu
+    depends_on:
+      - loki
+      - prometheus
+      - tempo
+
+  otel-collector:
+      image: otel/opentelemetry-collector-contrib:latest
+      restart: unless-stopped
+      command: ["--config=/etc/otelcol-contrib/config.yaml"]
+      volumes:
+        - ./config/otel-collector/config.yml:/etc/otelcol-contrib/config.yaml
+      networks:
+        - kurisu
+      depends_on:
+        - loki
+        - tempo
+
+  tempo:
+    image: grafana/tempo:latest
+    command:
+      - "-config.file=/etc/tempo/config.yml"
+      - "-target=all"
+    restart: unless-stopped
+    volumes:
+      - ./config/tempo/config.yml:/etc/tempo/config.yml
+      - ./.data/tempo:/var/tempo
+    ports:
+      - "3200:3200" # Tempo UI / API
+      - "4317:4317" # OTLP gRPC receiver
+    networks:
+      - kurisu
+
+networks:
+  kurisu:
+    external: true

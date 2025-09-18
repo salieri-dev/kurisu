@@ -2,32 +2,29 @@ services:
   backend:
     build:
       context: . 
-      dockerfile: backend/Dockerfile 
+      dockerfile: services/backend/Dockerfile
     volumes:
       - ./backend:/opt/kurisu/backend
       - ./kurisu_core:/opt/kurisu/kurisu_core
-      - ${ALTGIRLS_ASSETS_PATH}:/opt/kurisu/backend/plugins/fun/altgirls/assets 
-      - ${THREADS_ASSETS_PATH}:/opt/kurisu/backend/plugins/neuro/threads/assets
+      - ${ALTGIRLS_ASSETS_PATH:-./assets/altgirls}:/opt/kurisu/backend/plugins/fun/altgirls/assets 
+      - ${THREADS_ASSETS_PATH:-./assets/threads}:/opt/kurisu/backend/plugins/neuro/threads/assets
     ports:
-      - "${TAILSCALE_IP}:8000:8000"
+      - "${TAILSCALE_IP:-127.0.0.1}:8000:8000"
     restart: unless-stopped
     networks:
-      - app-network
+      - kurisu
     env_file:
       - .env
     environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-      - SERVICE_NAME=backend
-      - OTEL_SERVICE_NAME=backend
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - REDIS_URL=redis://redis:6379
       - JSON_LOGS=true
+      - MONGODB_URL=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017
     labels:
       - "logging=promtail"
     depends_on:
       - mongodb
-      - otel-collector
+      - redis
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
@@ -38,21 +35,17 @@ services:
   bot:
     build:
       context: . 
-      dockerfile: bot/Dockerfile
+      dockerfile: services/bot/Dockerfile
     volumes:
       - ./bot:/opt/kurisu/bot
       - ./kurisu_core:/opt/kurisu/kurisu_core
     restart: unless-stopped
     networks:
-      - app-network
+      - kurisu
     env_file:
       - .env
     environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-      - SERVICE_NAME=bot
-      - OTEL_SERVICE_NAME=bot
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - BACKEND_URL=http://backend:8000
       - REDIS_URL=redis://redis:6379
       - JSON_LOGS=true
@@ -61,43 +54,95 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-      otel-collector:
-        condition: service_started
 
   worker:
     build:
       context: . 
-      dockerfile: worker/Dockerfile 
+      dockerfile: services/worker/Dockerfile
     volumes:
       - ./worker:/opt/kurisu/worker
       - ./kurisu_core:/opt/kurisu/kurisu_core
     restart: unless-stopped
     networks:
-      - app-network
+      - kurisu
     env_file:
       - .env
     environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-      - SERVICE_NAME=worker
-      - OTEL_SERVICE_NAME=worker
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       - REDIS_URL=redis://redis:6379
       - BACKEND_URL=http://backend:8000
       - JSON_LOGS=true
+      - MONGODB_URL=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017
     labels:
       - "logging=promtail"
     depends_on:
       - backend
       - redis
       - mongodb
-      - otel-collector
+
+  sentiment-worker:
+    build:
+      context: . 
+      dockerfile: services/sentiment_worker/Dockerfile
+      args:
+        - SENTIMENT_MODEL=${SENTIMENT_MODEL}
+        - SENSITIVE_TOPICS_MODEL=${SENSITIVE_TOPICS_MODEL}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ./sentiment_worker:/opt/kurisu/sentiment_worker
+      - ./kurisu_core:/opt/kurisu/kurisu_core
+    restart: unless-stopped
+    networks:
+      - kurisu
+    env_file:
+      - .env
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+      - REDIS_URL=redis://redis:6379
+      - JSON_LOGS=true
+      - SENTIMENT_MODEL_DEVICE=cuda
+      - SENTIMENT_BATCH_SIZE=1024
+      - MONGODB_URL=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017
+    labels:
+      - "logging=promtail"
+    depends_on:
+      - redis
+      - mongodb
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: services/dashboard/Dockerfile
+    volumes:
+      - ./dashboard:/opt/kurisu/dashboard
+      - ./kurisu_core:/opt/kurisu/kurisu_core
+    ports:
+      - "${TAILSCALE_IP:-127.0.0.1}:8001:8001"
+    restart: unless-stopped
+    networks:
+      - kurisu
+    env_file:
+      - .env
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+      - BACKEND_URL=http://backend:8000
+      - JSON_LOGS=true
+    labels:
+      - "logging=promtail"
+    depends_on:
+      - backend
 
   mongodb:
     image: mongo:latest
     restart: always
     ports:
-      - "${TAILSCALE_IP}:27017:27017"
+      - "${TAILSCALE_IP:-127.0.0.1}:27017:27017"
     env_file:
       - .env
     environment:
@@ -106,7 +151,7 @@ services:
     volumes:
       - ./.data/mongodb:/data/db
     networks:
-      - app-network
+      - kurisu
     stop_grace_period: 5s
     healthcheck:
       test: mongosh "mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@localhost:27017/admin" --quiet --eval "db.adminCommand('ping')"
@@ -119,11 +164,11 @@ services:
     image: redis:alpine
     restart: always
     ports:
-      - "${TAILSCALE_IP}:6379:6379"
+      - "${TAILSCALE_IP:-127.0.0.1}:6379:6379"
     env_file:
       - .env
     networks:
-      - app-network
+      - kurisu
     command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
     volumes:
       - ./.data/redis:/data
@@ -133,174 +178,7 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
-      
-  prometheus:
-    image: prom/prometheus:latest
-    restart: unless-stopped
-    volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./.data/prometheus:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.enable-remote-write-receiver'
-    ports:
-      - "9090:9090"
-    networks:
-      - app-network
-  node-exporter:
-    image: prom/node-exporter:latest
-    restart: unless-stopped
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--path.rootfs=/rootfs'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    ports:
-      - "9100:9100"
-    networks:
-      - app-network
 
-  loki:
-    image: grafana/loki:latest
-    restart: unless-stopped
-    volumes:
-      - ./monitoring/loki/config.yml:/etc/loki/config.yml
-      - ./.data/loki:/loki
-    ports:
-      - "${TAILSCALE_IP}:3100:3100"
-    command: -config.file=/etc/loki/config.yml
-    networks:
-      - app-network
-
-  promtail:
-    image: grafana/promtail:latest
-    restart: unless-stopped
-    volumes:
-      - ./monitoring/promtail/config.yml:/etc/promtail/config.yml
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./.data/promtail:/var/lib/promtail/positions
-    command: -config.file=/etc/promtail/config.yml
-    networks:
-      - app-network
-    depends_on:
-      - loki
-
-  grafana:
-    image: grafana/grafana-oss:latest
-    restart: unless-stopped
-    volumes:
-      - ./.data/grafana:/var/lib/grafana
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
-      - GF_USERS_ALLOW_SIGN_UP=false
-    ports:
-      - "3000:3000"
-    networks:
-      - app-network
-    depends_on:
-      - loki
-      - prometheus
-      - tempo
-
-  otel-collector:
-      image: otel/opentelemetry-collector-contrib:latest
-      restart: unless-stopped
-      command: ["--config=/etc/otelcol-contrib/config.yaml"]
-      volumes:
-        - ./monitoring/otel-collector/config.yml:/etc/otelcol-contrib/config.yaml
-      networks:
-        - app-network
-      depends_on:
-        loki:
-          condition: service_started
-
-  tempo:
-    image: grafana/tempo:latest
-    command:
-      - "-config.file=/etc/tempo/config.yml"
-      - "-target=all"
-    restart: unless-stopped
-    volumes:
-      - ./monitoring/tempo/config.yml:/etc/tempo/config.yml
-      - ./.data/tempo:/var/tempo
-    ports:
-      - "3200:3200" # Tempo UI / API
-      - "4317:4317" # OTLP gRPC receiver for the collector to connect to
-    networks:
-      - app-network
-
-  sentiment-worker:
-    build:
-      context: . 
-      dockerfile: sentiment_worker/Dockerfile 
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1 # or 'all'
-              capabilities: [gpu]
-    volumes:
-      - ./sentiment_worker:/opt/kurisu/sentiment_worker
-      - ./kurisu_core:/opt/kurisu/kurisu_core
-      - ./.data/hf_cache:/opt/kurisu/cache
-    restart: unless-stopped
-    networks:
-      - app-network
-    env_file:
-      - .env
-    environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-      - SERVICE_NAME=sentiment-worker
-      - OTEL_SERVICE_NAME=sentiment-worker
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      - REDIS_URL=redis://redis:6379
-      - JSON_LOGS=true
-      - SENTIMENT_MODEL_DEVICE=cuda
-      - SENTIMENT_BATCH_SIZE=256
-    labels:
-      - "logging=promtail"
-    depends_on:
-      - redis
-      - mongodb
-      - otel-collector
-
-  dashboard:
-    build:
-      context: .
-      dockerfile: dashboard/Dockerfile
-    volumes:
-      - ./dashboard:/opt/kurisu/dashboard
-      - ./kurisu_core:/opt/kurisu/kurisu_core
-    ports:
-      - "${TAILSCALE_IP}:8001:8001"
-    restart: unless-stopped
-    networks:
-      - app-network
-    env_file:
-      - .env
-    environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-      - SERVICE_NAME=dashboard
-      - OTEL_SERVICE_NAME=dashboard
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      - BACKEND_URL=http://backend:8000
-      - JSON_LOGS=true
-    labels:
-      - "logging=promtail"
-    depends_on:
-      - backend
-      
 networks:
-  app-network:
-    driver: bridge
+  kurisu:
+    external: true

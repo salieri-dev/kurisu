@@ -2,8 +2,8 @@ from unittest.mock import ANY, AsyncMock, MagicMock
 
 import pytest
 
-from backend.plugins.neuro.fanfic.models import LLMFanficResponse
-from backend.plugins.neuro.fanfic.service import FanficService
+from services.backend.plugins.neuro.fanfic.models import LLMFanficResponse
+from services.backend.plugins.neuro.fanfic.service import FanficService
 
 
 @pytest.fixture
