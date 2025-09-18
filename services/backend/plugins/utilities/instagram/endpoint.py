@@ -1,26 +1,21 @@
 from typing import Annotated
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends
 from .models import InstagramMediaResponse
 from .service import InstagramService
 from .config import InstagramSettings
 from structlog import get_logger
+from plugins import get_plugin_settings_provider
 
 router = APIRouter()
 logger = get_logger(__name__)
 
 
-def get_instagram_settings(request: Request) -> InstagramSettings:
-    """
-    Extracts and validates Instagram-specific settings from the global
-    application settings object.
-    """
-    return InstagramSettings.model_validate(request.app.state.settings)
-
-
 def get_instagram_service(
-    config: Annotated[InstagramSettings, Depends(get_instagram_settings)],
+    config: Annotated[
+        InstagramSettings, Depends(get_plugin_settings_provider(InstagramSettings))
+    ],
 ) -> InstagramService:
-    """Instantiates the InstagramService with its required configuration."""
+    """Dependency provider that instantiates the InstagramService with its required configuration."""
     return InstagramService(config=config)
 
 
