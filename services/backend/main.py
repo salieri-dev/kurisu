@@ -1,10 +1,7 @@
 import os
 import structlog
-from kurisu_core.logging_config import setup_structlog
 
-JSON_LOGS_ENABLED = os.getenv("JSON_LOGS", "false").lower() in ("true", "1", "t")
-setup_structlog(json_logs=JSON_LOGS_ENABLED)
-logger = structlog.get_logger(__name__)
+
 from contextlib import asynccontextmanager
 from pathlib import Path
 import structlog.contextvars
@@ -26,7 +23,11 @@ from utils.middleware import api_key_middleware, structured_logging_middleware
 from utils.redis_client import close_redis_client, init_redis_client
 from kurisu_core.tracing import setup_tracing
 from utils.asset_service import LocalAssetService
+from kurisu_core.logging_config import setup_structlog
 
+logger = structlog.get_logger(__name__)
+JSON_LOGS_ENABLED = os.getenv("JSON_LOGS", "false").lower() in ("true", "1", "t")
+setup_structlog(json_logs=JSON_LOGS_ENABLED)
 EXCLUDED_PLUGINS = []
 
 

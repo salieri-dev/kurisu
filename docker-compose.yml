@@ -7,7 +7,7 @@ services:
       context: . 
       dockerfile: services/backend/Dockerfile
     volumes:
-      - ${ALTGIRLS_ASSETS_PATH:-./assets/altgirls}:/app/services/kurisu/backend/plugins/fun/altgirls/assets 
+      - ${ALTGIRLS_ASSETS_PATH:-./assets/altgirls}:/app/services/backend/plugins/fun/altgirls/assets 
       - ${THREADS_ASSETS_PATH:-./assets/threads}:/app/services/backend/plugins/neuro/threads/assets
       - ./services/backend:/app/services/backend
     ports:

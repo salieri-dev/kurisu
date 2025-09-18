@@ -1,7 +1,6 @@
 import base64
 import io
 from typing import Literal
-
 import structlog
 from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
@@ -11,7 +10,6 @@ from utils.decorators import handle_api_errors, nsfw_guard, rate_limit
 from utils.help_registry import command_handler
 
 log = structlog.get_logger(__name__)
-
 ThreadType = Literal["bugurt", "greentext"]
 
 
@@ -24,35 +22,27 @@ async def _handle_thread_command(
             f"❌ **Использование:** `/{thread_type} [тема]`", quote=True
         )
         return
-
     topic = message.text.split(maxsplit=1)[1]
-
-    notification = await message.reply_text("🧠 Генерирую тред...", quote=True)
-
+    wait_msg = await message.reply_text("🧠 Генерирую тред...", quote=True)
+    message.wait_msg = wait_msg
     response = await backend_client.post(
         f"/neuro/threads/{thread_type}",
         message=message,
         json={"topic": topic},
     )
-
     image_bytes = base64.b64decode(response["image_base64"])
     story_text = response["story"]
-
     caption = story_text
     if thread_type == "bugurt":
         normalized_text = story_text.replace("\n", "@")
-
         parts = [p.strip() for p in normalized_text.split("@") if p.strip()]
-
         caption = "\n@\n".join(parts)
-
     photo = io.BytesIO(image_bytes)
     photo.name = f"{thread_type}.png"
-
     await message.reply_photo(
         photo=photo, caption=caption, quote=True, parse_mode=ParseMode.DISABLED
     )
-    await notification.delete()
+    await wait_msg.delete()
 
 
 @Client.on_message(filters.command("bugurt"), group=1)

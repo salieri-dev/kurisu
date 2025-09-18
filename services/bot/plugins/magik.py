@@ -1,16 +1,13 @@
 from io import BytesIO
-
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from structlog import get_logger
-
 from utils.api_client import backend_client
 from utils.decorators import handle_api_errors, nsfw_guard, rate_limit
 from utils.help_registry import command_handler
 from utils.media_helpers import get_media_as_bytes
 
 log = get_logger(__name__)
-
 ERROR_NO_MEDIA = "Пожалуйста, ответьте на сообщение с изображением/GIF или отправьте его вместе с командой."
 
 
@@ -22,40 +19,33 @@ async def process_image_command(
 ):
     """
     Generic handler for processing an image via a backend endpoint.
-    Dynamically handles the response type (image/gif) based on backend's Content-Type.
+    Lets the @handle_api_errors decorator manage all exceptions.
     """
     wait_msg = await message.reply_text("✨ Обрабатываю изображение...", quote=True)
+    message.wait_msg = wait_msg
     media_data = await get_media_as_bytes(message)
     if not media_data:
-        await message.reply_text(ERROR_NO_MEDIA, quote=True)
+        await wait_msg.edit_text(ERROR_NO_MEDIA)
         return
-
     media_bytes, is_input_gif = media_data
-
-    try:
-        file_name = "animation.gif" if is_input_gif else "image.png"
-        file_mime = "image/gif" if is_input_gif else "image/png"
-
-        result_bytes, result_mime_type = await backend_client.post_media(
-            endpoint,
-            message=message,
-            file_bytes=media_bytes,
-            file_name=file_name,
-            file_mime=file_mime,
-            data=data,
-        )
-
-        output = BytesIO(result_bytes)
-
-        if "gif" in result_mime_type:
-            output.name = f"{base_filename}.gif"
-            await message.reply_animation(animation=output, quote=True)
-        else:
-            output.name = f"{base_filename}.png"
-            await message.reply_photo(photo=output, quote=True)
-
-    finally:
-        await wait_msg.delete()
+    file_name = "animation.gif" if is_input_gif else "image.png"
+    file_mime = "image/gif" if is_input_gif else "image/png"
+    result_bytes, result_mime_type = await backend_client.post_media(
+        endpoint,
+        message=message,
+        file_bytes=media_bytes,
+        file_name=file_name,
+        file_mime=file_mime,
+        data=data,
+    )
+    output = BytesIO(result_bytes)
+    if "gif" in result_mime_type:
+        output.name = f"{base_filename}.gif"
+        await message.reply_animation(animation=output, quote=True)
+    else:
+        output.name = f"{base_filename}.png"
+        await message.reply_photo(photo=output, quote=True)
+    await wait_msg.delete()
 
 
 @Client.on_message(filters.command("magik"), group=1)

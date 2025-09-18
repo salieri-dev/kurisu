@@ -1,7 +1,6 @@
 import base64
 import io
 from typing import Any
-
 import structlog
 from pyrogram import Client, filters
 from pyrogram.types import Message
@@ -100,12 +99,9 @@ def get_sensitivity_description(sensitivity: float) -> str:
 
 def create_report(attributes: dict[str, Any], name: str) -> str:
     """Generates the formatted report text using raw data from the API."""
-
     size_category = get_size_category(attributes["length_erect"])
     satisfaction_comment = get_satisfaction_comment(attributes["satisfaction_rating"])
-
     report = f"""🍆 **Пенис {name}** 🍆
-
 📏 **Размеры**
   ├─ В эрекции:
   │  ├─ Длина: {format_measurement(attributes["length_erect"])}
@@ -116,7 +112,6 @@ def create_report(attributes: dict[str, Any], name: str) -> str:
      ├─ Длина: {format_measurement(attributes["length_flaccid"])}
      ├─ Обхват: {format_measurement(attributes["girth_flaccid"])}
      └─ Объём: {attributes["volume_flaccid"]:.2f} см³
-
 🦸‍♂️ **Суперсилы**
   ├─ 💪 Твёрдость: {get_rigidity_level(attributes["rigidity"])} ({attributes["rigidity"]:.2f}%)
   ├─ ↪️ Кривизна: {get_curvature_description(attributes["curvature"])} ({attributes["curvature"]:.2f}°)
@@ -124,7 +119,6 @@ def create_report(attributes: dict[str, Any], name: str) -> str:
   ├─ ⏱️ Выносливость: {get_stamina_description(attributes["stamina"])} ({attributes["stamina"]:.2f} мин)
   ├─ 🔄 Восстановление: {get_refractory_description(attributes["refractory_period"])} ({attributes["refractory_period"]:.2f} мин)
   └─ 🎭 Чувствительность: {get_sensitivity_description(attributes["sensitivity"])} ({attributes["sensitivity"]:.2f}/10)
-
 📊 **Статистика**
   ├─ 📏 Категория размера: {size_category}
   └─ 😍 Рейтинг удовлетворения: {attributes["satisfaction_rating"]:.2f}%
@@ -146,34 +140,18 @@ def create_report(attributes: dict[str, Any], name: str) -> str:
 @handle_api_errors
 async def handle_dick(client: Client, message: Message):
     """Handle /dick command."""
-    try:
-        attributes_data = await backend_client.get(
-            "/fun/dick/generate", message=message
-        )
-
-        name = message.from_user.username or message.from_user.first_name
-
-        report_text = create_report(attributes_data, name=name)
-
-        image_response = await backend_client.post(
-            "/fun/dick/image", message=message, json=attributes_data
-        )
-        image_base64 = image_response.get("image_base64")
-
-        if image_base64:
-            try:
-                image_bytes = base64.b64decode(image_base64)
-                await message.reply_photo(
-                    photo=io.BytesIO(image_bytes), caption=report_text
-                )
-            except Exception:
-                log.exception("Error decoding or sending dick image")
-                await message.reply_text(report_text)
-        else:
-            await message.reply_text(report_text)
-
-    except Exception:
-        log.exception("An unhandled error occurred in /dick command")
-        await message.reply_text(
-            "Произошла неожиданная ошибка. Мы знаем о проблеме и работаем над ней. Попробуйте позже"
-        )
+    wait_msg = await message.reply_text("🍆 Измеряю...", quote=True)
+    message.wait_msg = wait_msg
+    attributes_data = await backend_client.get("/fun/dick/generate", message=message)
+    name = message.from_user.username or message.from_user.first_name
+    report_text = create_report(attributes_data, name=name)
+    image_response = await backend_client.post(
+        "/fun/dick/image", message=message, json=attributes_data
+    )
+    image_base64 = image_response.get("image_base64")
+    if image_base64:
+        image_bytes = base64.b64decode(image_base64)
+        await message.reply_photo(photo=io.BytesIO(image_bytes), caption=report_text)
+    else:
+        await message.reply_text(report_text)
+    await wait_msg.delete()
