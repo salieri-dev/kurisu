@@ -51,12 +51,12 @@ async def handle_roll(client: Client, message: Message):
     await message.reply(f"🎲 {result['result']}")
 
 
-@Client.on_message(filters.command("flip"), group=1)
-@command_handler(commands=["flip"], description="Подбрасывает монетку.", group="Рандом")
+@Client.on_message(filters.command("toss"), group=1)
+@command_handler(commands=["toss"], description="Подбрасывает монетку.", group="Рандом")
 @handle_api_errors
-async def handle_flip(client: Client, message: Message):
-    """Handle /flip command."""
-    result = await backend_client.get("/fun/random/flip", message=message)
+async def handle_toss(client: Client, message: Message):
+    """Handle /toss command."""
+    result = await backend_client.get("/fun/random/toss", message=message)
     await message.reply(f"🪙 {result['result']}")
 
 

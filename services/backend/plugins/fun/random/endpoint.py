@@ -51,14 +51,14 @@ def roll_dice():
 
 
 @router.get(
-    "/flip",
+    "/toss",
     response_model=CoinResponse,
-    summary="Flip a coin",
-    description="Flip a coin and get either 'Орёл' (heads) or 'Решка' (tails).",
+    summary="Toss a coin",
+    description="Toss a coin and get either 'Орёл' (heads) or 'Решка' (tails).",
 )
-def flip_coin():
-    """Flip a coin."""
-    return CoinResponse(**random_service.flip_coin())
+def toss_coin():
+    """Toss a coin."""
+    return CoinResponse(**random_service.toss_coin())
 
 
 @router.get(

@@ -2,7 +2,7 @@ import mimetypes
 import random
 from pathlib import Path
 from typing import Protocol
-
+from fastapi import Request
 from pydantic import BaseModel
 from utils.exceptions import NotFoundError
 
@@ -25,14 +25,11 @@ class AssetService(Protocol):
     def get_random_assets(self, category: str, count: int) -> list[AssetDetail]:
         """
         Retrieves a specified number of random assets from a given category.
-
         Args:
             category: The sub-path or key prefix for the asset group (e.g., 'fun/altgirls/assets').
             count: The number of random assets to retrieve.
-
         Returns:
             A list of AssetDetail objects.
-
         Raises:
             NotFoundError: If the category does not exist or contains no valid assets.
         """
@@ -51,19 +48,15 @@ class LocalAssetService:
         category_path = self.base_path / category
         if not category_path.is_dir():
             raise NotFoundError(f"Asset category '{category}' not found.")
-
         all_files = [
             p
             for p in category_path.rglob("*")
             if p.is_file() and not p.name.startswith(".")
         ]
-
         if not all_files:
             raise NotFoundError(f"No assets found in category '{category}'.")
-
         num_to_sample = min(count, len(all_files))
         selected_paths = random.sample(all_files, num_to_sample)
-
         asset_details = []
         for path in selected_paths:
             content_type, _ = mimetypes.guess_type(path)
@@ -75,20 +68,12 @@ class LocalAssetService:
                     content_type=content_type,
                 )
             )
-
         return asset_details
 
 
-_asset_service_instance = None
-
-
-def get_asset_service() -> AssetService:
+def get_asset_service(request: Request) -> AssetService:
     """
     FastAPI dependency provider for the AssetService.
-    Uses a singleton pattern to instantiate the service once.
+    Retrieves the singleton instance from the application state.
     """
-    global _asset_service_instance
-    if _asset_service_instance is None:
-        base_plugins_path = Path(__file__).parent.parent / "plugins"
-        _asset_service_instance = LocalAssetService(base_path=base_plugins_path)
-    return _asset_service_instance
+    return request.app.state.asset_service

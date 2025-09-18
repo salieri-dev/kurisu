@@ -1,5 +1,4 @@
 from typing import Annotated
-
 import redis.asyncio as redis
 from config import settings
 from fastapi import Depends, HTTPException, Request
@@ -9,7 +8,6 @@ from motor.motor_asyncio import (
     AsyncIOMotorDatabase,
 )
 from utils.fal_client import FalAIClient
-
 from .llm_client import LLMClient
 
 
@@ -17,12 +15,10 @@ async def require_telegram_headers(request: Request) -> dict:
     """Dependency to require Telegram-specific headers."""
     x_user_id = request.headers.get("x-user-id")
     x_chat_id = request.headers.get("x-chat-id")
-
     if not x_user_id or not x_chat_id:
         raise HTTPException(
             status_code=400, detail="Both x-user-id and x-chat-id headers are required"
         )
-
     return {"user_id": x_user_id, "chat_id": x_chat_id}
 
 
@@ -58,31 +54,11 @@ async def get_redis_client(request: Request) -> redis.Redis:
     return request.app.state.redis
 
 
-_llm_client = None
-_fal_client = None
-
-
 def get_llm_client(request: Request) -> LLMClient:
-    """Dependency to get the LLMClient, initializing it on first use."""
-    global _llm_client
-    if _llm_client is None:
-        from config import settings
-        from utils.llm_client import LLMClient
-
-        _llm_client = LLMClient(
-            api_key=settings.llm_api_key,
-            base_url=str(settings.llm_base_url),
-            http_referer=settings.llm_http_referer,
-            x_title=settings.llm_x_title,
-        )
-    return _llm_client
+    """Dependency to get the shared LLMClient instance from the application state."""
+    return request.app.state.llm_client
 
 
 def get_fal_client(request: Request) -> FalAIClient:
-    """Dependency to get the FalAIClient, initializing it on first use."""
-    global _fal_client
-    if _fal_client is None:
-        from utils.fal_client import FalAIClient
-
-        _fal_client = FalAIClient()
-    return _fal_client
+    """Dependency to get the shared FalAIClient instance from the application state."""
+    return request.app.state.fal_client9

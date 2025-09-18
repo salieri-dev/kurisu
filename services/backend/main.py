@@ -1,14 +1,12 @@
 import os
 import structlog
-
 from kurisu_core.logging_config import setup_structlog
 
 JSON_LOGS_ENABLED = os.getenv("JSON_LOGS", "false").lower() in ("true", "1", "t")
 setup_structlog(json_logs=JSON_LOGS_ENABLED)
-
 logger = structlog.get_logger(__name__)
-
 from contextlib import asynccontextmanager
+from pathlib import Path
 import structlog.contextvars
 from plugins import get_plugin_manager
 from config import AppConfig
@@ -27,6 +25,7 @@ from utils.llm_client import LLMClient
 from utils.middleware import api_key_middleware, structured_logging_middleware
 from utils.redis_client import close_redis_client, init_redis_client
 from kurisu_core.tracing import setup_tracing
+from utils.asset_service import LocalAssetService
 
 EXCLUDED_PLUGINS = []
 
@@ -39,9 +38,7 @@ async def lifespan(app: FastAPI):
     """
     logger.info("Initializing plugin manager and discovering plugins...")
     plugin_manager = get_plugin_manager(excluded_plugins=EXCLUDED_PLUGINS)
-
     plugin_config_models = plugin_manager.get_config_models()
-
     all_bases = (AppConfig, *plugin_config_models)
     CombinedSettings = create_model("CombinedSettings", __base__=all_bases)
     try:
@@ -54,14 +51,11 @@ async def lifespan(app: FastAPI):
             "Failed to load combined configuration from environment.", error=str(e)
         )
         raise
-
     setup_tracing(service_name=app.state.settings.service_name)
     HTTPXClientInstrumentor().instrument()
     logger.info("Application starting up...", service=app.state.settings.service_name)
-
     instrumentator.expose(app)
     logger.info("Prometheus metrics endpoint exposed at /metrics.")
-
     try:
         app.state.mongo_client = AsyncIOMotorClient(str(app.state.settings.mongodb_url))
         await app.state.mongo_client.admin.command("ping")
@@ -71,10 +65,8 @@ async def lifespan(app: FastAPI):
     except ConnectionFailure as e:
         logger.fatal("Failed to connect to MongoDB on startup.", error=str(e))
         raise
-
     app.state.redis = await init_redis_client(app.state.settings)
     logger.info("Successfully connected to Redis.")
-
     app.state.llm_client = LLMClient(
         api_key=app.state.settings.llm_api_key,
         base_url=str(app.state.settings.llm_base_url),
@@ -84,11 +76,11 @@ async def lifespan(app: FastAPI):
     logger.info("LLM Client initialized.")
     app.state.fal_client = FalAIClient()
     logger.info("Fal.ai Client initialized.")
-
+    base_plugins_path = Path(__file__).parent / "plugins"
+    app.state.asset_service = LocalAssetService(base_path=base_plugins_path)
+    logger.info("Local Asset Service initialized.")
     plugin_manager.register_routers(app)
-
     yield
-
     logger.info("Application shutting down...")
     app.state.mongo_client.close()
     logger.info("MongoDB connection closed.")
@@ -102,7 +94,6 @@ app = FastAPI(
     description="Dynamic plugin-based API with autodiscovery, metrics, and structured logging.",
     lifespan=lifespan,
 )
-
 FastAPIInstrumentor.instrument_app(app)
 instrumentator = Instrumentator(
     should_group_status_codes=True,
