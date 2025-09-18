@@ -54,28 +54,6 @@ services:
       backend:
         condition: service_healthy
 
-  worker:
-    build:
-      context: . 
-      dockerfile: services/worker/Dockerfile
-    restart: unless-stopped
-    networks:
-      - kurisu
-    env_file:
-      - .env
-    environment:
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
-      - REDIS_URL=redis://redis:6379
-      - BACKEND_URL=http://backend:8000
-      - JSON_LOGS=true
-      - MONGODB_URL=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017
-    labels:
-      - "logging=promtail"
-    depends_on:
-      - backend
-      - redis
-      - mongodb
-
   sentiment-worker:
     build:
       context: . 
